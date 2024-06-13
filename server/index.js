@@ -6,7 +6,7 @@ const app = express();
 const mysql = require("mysql2");
 const { execSync } = require("child_process");
 
-const defgate = execSync("/srv/pcrpto/server/ip.sh").toString().slice(0,-1);
+const defgate = execSync("/srv/server/ip.sh").toString().slice(0,-1);
 
 const con = mysql.createPool({
   host: defgate,
@@ -27,7 +27,7 @@ function sanitize(q) {
 };
 
 app.get("/", (req, res) => {
-  res.send(execSync("cat /srv/pcrpto/client/src/index.js"));
+  res.send(execSync("cat /srv/client/public/index.html"));
 });
 
 /*app.get("/favicon.ico", (req,res) => {
