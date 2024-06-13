@@ -10,5 +10,8 @@
   "dependencies": {
     "express": "^4.19.2",
     "mysql2": "^3.10.0"
+  },
+  "scripts": {
+    "start": "node server/index.js"
   }
 }
