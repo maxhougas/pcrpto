@@ -1,0 +1,14 @@
+{
+  "name": "pcrpto",
+  "version": "1.0.0",
+  "description": "PTO request",
+  "main": "index.js",
+  "repository": "https://github.com/maxhougas/pcrpto",
+  "author": "Max Hougas",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.10.0"
+  }
+}
