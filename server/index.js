@@ -5,16 +5,41 @@ const PORT = process.env.PORT || 80;
 const app = express();
 const mysql = require("mysql2");
 const { execSync } = require("child_process");
+const { scryptSync,randomFillSync,createCipheriv,createDecipheriv } = require("crypto");
+const { Buffer } = require("buffer");
+
+const algorithm = 'aes-192-cbc';
+const salts = ['pcr','players','club','aman','aplan','acanal','panama'];
+let index = 0;
+let iv = Buffer.alloc(16);
+
+/*
+let key = scryptSync('!PCR_PLAYERS_CLUB&',salts[index],24);
+let iv = randomFillSync(Buffer.alloc(16));
+console.log(JSON.stringify(iv));
+
+let cipher = createCipheriv(algorithm,key,iv);
+let encrypted = cipher.update('KLEERTEXT','utf8','hex');
+encrypted += cipher.final('hex');
+console.log(encrypted);
+
+let decipher = createDecipheriv(algorithm,key,iv);
+let decrypted = decipher.update(encrypted,'hex','utf8');
+decrypted += decipher.final('utf8');
+console.log(decrypted);
+*/
 
 const defgate = execSync("/srv/server/ip.sh").toString().slice(0,-1);
 
-const con = mysql.createPool({
-  host: defgate,
-  user: "mysql",
-  password: "mysql",
-  port: "3306",
-  database: "pcr"
-});
+let mysqlblock = {
+ host: defgate,
+ user: "uname",
+ password: "pass",
+ port: "3306",
+ database: "pcr",
+}
+
+let con = mysql.createPool(mysqlblock);
 
 app.use((req,res,next) =>
 {
@@ -30,6 +55,44 @@ app.get("/", (req, res) => {
   res.sendFile("/srv/client/public/index.html");
 });
 
+app.get("/mustard", (req, res) => {
+  res.json({kitten: salts[index]});
+  index += 1;
+  index %= salts.length;
+});
+
+app.get("/ivreq", (req, res) => {
+  iv = randomFillSync(iv);
+  res.json({kitten: iv});
+});
+
+app.get("/login/:uname.:pass", (req, res) => {
+  try {
+    let key = scryptSync('!PCR_PLAYERS_CLUB&',salts[index],24);
+    let decipher = createDecipheriv(algorithm,key,iv);
+    let decrypted = decipher.update(req.params.pass,'hex','utf8');
+    decrypted += decipher.final('utf8');
+
+    mysqlblock.user = req.params.uname;
+    mysqlblock.password = decrypted;
+    con = mysql.createPool(mysqlblock);
+  } catch (e) {
+    res.json({ message: 1}); console.log(e);
+  }
+
+  let sql = ';';
+  con.query(sql, function (err, result) {
+    if (err) {res.json({ message: 2}); console.log(err);}
+    else {res.json({ message: 0, sqlret: result });}
+  });
+});
+
+app.get("/logout", (req, res) => {
+  mysqlblock.user = "uname";
+  mysqlblock.password = "pass";
+  con = mysql.createPool(mysqlblock);
+});
+
 /*app.get("/favicon.ico", (req,res) => {
   res.setHeader("Content-Type", "image/vnd.microsoft.icon");
   res.send(execSync("cat build/favicon.ico"));
@@ -39,7 +102,7 @@ app.get("/static/:mime/:file", (req,res) => {
   const catline = "cat build/static/"+`${req.params.mime}`+"/mimefile";
   const mimetype = execSync(`${catline}`).toString().slice(0,-1);
   res.setHeader("Content-Type", mimetype);
-  res.send(execSync(`cat build/static/${req.params.mime}/${req.params.file}`));
+  res.sendFile(`build/static/${req.params.mime}/${req.params.file}`);
 });
 
 app.get("/api/:param1.:param2", (req, res) => {
