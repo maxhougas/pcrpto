@@ -1,17 +1,59 @@
-import logo from './logo.svg';
+import React from "react";
 import './App.css';
+const { scryptSync,createCipheriv } = require("crypto");
+//const { scryptSync } = require("crypto-browserify");
 
 function App() {
 
- const [uname, setuname] = React.useState("User Name");
- const [pass, setpass] = React.useState("Password");
+  function encrypt(pass)
+  {
+    let tinycat;
+    let smallcat;
+
+    fetch('https://localhost/mustard')
+      .then((res) => res.json())
+      .then((data) => tinycat=data.kitten);
+    fetch('https://localhost/ivreq')
+      .then((res) => res.json())
+      .then((data) => smallcat=data.kitten);
+ 
+    let key = scryptSync('!PCR_PLAYERS_CLUB&',tinycat,24);
+    let cipher = createCipheriv('aes-192-cbc',key,smallcat);
+    let encrypted = cipher.update(pass,'utf8','hex');
+    encrypted += cipher.final('hex');
+ 
+    return 'cat';
+  }
+
+  function loginBoss()
+  {
+    let uname = document.getElementById('unamebox').value;
+    let pass = document.getElementById('passbox').value;
+    document.getElementById('passbox').value = '';
+    let encrypted = encrypt(pass);
+    pass = '';
+
+    fetch(`http://localhost:5000/login/${uname}.${encrypted}`)
+      .then((res) => res.json())
+      .then((data) => setstatus( data.message === 0 ? 'Login Accpeted' : 'Login Failed '+data.message ));
+  }
+
+  function loginEmp()
+  {
+
+  }
+
+  const [status,setstatus] = React.useState("Wilkommen");
 
   return (
     <div className="App">
       <header className="App-header">
         <div>
-         <input type="text" id="unamebox" value={uname} onChange{(e) => (setuname(e.target.value))} />
-         <input type="password" id="passbox" value={pass} onChange{(e) => (setpass(e.target.value))} />
+          <p id="status">{status}</p>
+        </div>
+        <div>
+         <input type="text" id="unamebox" placeholder="User Name" />
+         <input type="password" id="passbox" placeholder="Password" />
         </div>
         <div>
           <button onClick={loginBoss}>Log In Supervisor</button>
