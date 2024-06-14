@@ -27,7 +27,7 @@ function sanitize(q) {
 };
 
 app.get("/", (req, res) => {
-  res.send(execSync("cat /srv/client/public/index.html"));
+  res.sendFile("/srv/client/public/index.html");
 });
 
 /*app.get("/favicon.ico", (req,res) => {
