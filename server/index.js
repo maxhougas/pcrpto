@@ -50,26 +50,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/getkey", (req, res) => {
-  keypair = crypto.generateKeyPairSync("rsa",{modulusLength:2048});
+  keypair = crypto.generateKeyPairSync("rsa",{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'der'}});
+  console.log(keypair.publicKey);
   res.json({key:keypair.publicKey});
-} 
-
-/*
-app.get("/mustard", (req, res) => {
-  res.json({kitten: salts[index]});
-  index += 1;
-  index %= salts.length;
-});
-
-app.get("/ivreq", (req, res) => {
-  iv = randomFillSync(iv);
-  res.json({kitten: iv});
-});
-*/
+}); 
 
 app.get("/login/:uname.:pass", (req, res) => {
+  let decrypted;
+
   try {
-    let decrypted = privateDecrypt({key:keypair.privateKey},pass);
+    decrypted = crypto.privateDecrypt({key:keypair.privateKey},pass);
   } catch (e) {
     res.json({ message: 1}); console.log(e);
   }

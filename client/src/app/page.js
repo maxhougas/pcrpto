@@ -17,15 +17,15 @@ export default function Home(){
     let key;
 
     try{
-      fetch('https://localhost/getkey')
+      fetch('http://localhost:5000/getkey')
         .then((res) => res.json())
-        .then((data) => key=data.key);
+        .then((data) => {console.log(data);key=data.key;});
     } catch(e){
       console.log('Failed to retrieve key from backend: "Home/encrypt)');
       console.log(e);
       setstatus('Failed to retrieve key');
     }
-
+    console.log(key);
     let encrypted;
 
     try{
