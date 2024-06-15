@@ -5,28 +5,22 @@ const PORT = process.env.PORT || 80;
 const app = express();
 const mysql = require("mysql2");
 const { execSync } = require("child_process");
-const { scryptSync,randomFillSync,createCipheriv,createDecipheriv } = require("crypto");
+const crypto = require("crypto");
 const { Buffer } = require("buffer");
 
-const algorithm = 'aes-192-cbc';
+const algorithm = 'rsa';
+let keypair;
+/*
 const salts = ['pcr','players','club','aman','aplan','acanal','panama'];
 let index = 0;
 let iv = Buffer.alloc(16);
 
-/*
-let key = scryptSync('!PCR_PLAYERS_CLUB&',salts[index],24);
-let iv = randomFillSync(Buffer.alloc(16));
-console.log(JSON.stringify(iv));
-
-let cipher = createCipheriv(algorithm,key,iv);
-let encrypted = cipher.update('KLEERTEXT','utf8','hex');
-encrypted += cipher.final('hex');
+keypair = crypto.generateKeyPairSync("rsa",{modulusLength: 2048});
+console.log(keypair.publicKey);
+let encrypted = crypto.publicEncrypt({key:keypair.publicKey},'KLEERTEXT');
 console.log(encrypted);
-
-let decipher = createDecipheriv(algorithm,key,iv);
-let decrypted = decipher.update(encrypted,'hex','utf8');
-decrypted += decipher.final('utf8');
-console.log(decrypted);
+let decrypted = crypto.privateDecrypt({key:keypair.privateKey},encrypted);
+console.log(decrypted.toString());
 */
 
 const defgate = execSync("/srv/server/ip.sh").toString().slice(0,-1);
@@ -55,6 +49,12 @@ app.get("/", (req, res) => {
   res.sendFile("/srv/client/public/index.html");
 });
 
+app.get("/getkey", (req, res) => {
+  keypair = crypto.generateKeyPairSync("rsa",{modulusLength:2048});
+  res.json({key:keypair.publicKey});
+} 
+
+/*
 app.get("/mustard", (req, res) => {
   res.json({kitten: salts[index]});
   index += 1;
@@ -65,20 +65,18 @@ app.get("/ivreq", (req, res) => {
   iv = randomFillSync(iv);
   res.json({kitten: iv});
 });
+*/
 
 app.get("/login/:uname.:pass", (req, res) => {
   try {
-    let key = scryptSync('!PCR_PLAYERS_CLUB&',salts[index],24);
-    let decipher = createDecipheriv(algorithm,key,iv);
-    let decrypted = decipher.update(req.params.pass,'hex','utf8');
-    decrypted += decipher.final('utf8');
-
-    mysqlblock.user = req.params.uname;
-    mysqlblock.password = decrypted;
-    con = mysql.createPool(mysqlblock);
+    let decrypted = privateDecrypt({key:keypair.privateKey},pass);
   } catch (e) {
     res.json({ message: 1}); console.log(e);
   }
+
+  mysqlblock.user = req.params.uname;
+  mysqlblock.password = decrypted;
+  con = mysql.createPool(mysqlblock);
 
   let sql = ';';
   con.query(sql, function (err, result) {

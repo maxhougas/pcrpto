@@ -1,0 +1,34 @@
+'use client'
+
+import React from "react";
+import Image from "next/image";
+import styles from "./page.module.css";
+
+export default function Home() {
+
+  function loginBoss() {
+  }
+
+  function loginEmp() {
+  }
+
+  const [status,setstatus] = React.useState("Wilkommen");
+
+  return (
+    <main className={styles.main}>
+      <div className="App">
+        <div>
+          <p id="status">{status}</p>
+        </div>
+        <div>
+         <input type="text" id="unamebox" placeholder="User Name" />
+         <input type="password" id="passbox" placeholder="Password" />
+        </div>
+        <div>
+          <button onClick={loginBoss}>Log In Supervisor</button>
+          <button onClick={loginEmp}>Log In Employee</button>
+        </div>
+      </div>
+    </main>
+  );
+}
