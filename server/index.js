@@ -1,77 +1,152 @@
 // server/index.js
 
 const express = require("express");
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 5000;
 const app = express();
 const mysql = require("mysql2");
 const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
 
-const algorithm = 'rsa';
-let keypair;
-/*
-const salts = ['pcr','players','club','aman','aplan','acanal','panama'];
-let index = 0;
-let iv = Buffer.alloc(16);
-
-keypair = crypto.generateKeyPairSync("rsa",{modulusLength: 2048});
-console.log(keypair.publicKey);
-let encrypted = crypto.publicEncrypt({key:keypair.publicKey},'KLEERTEXT');
-console.log(encrypted);
-let decrypted = crypto.privateDecrypt({key:keypair.privateKey},encrypted);
-console.log(decrypted.toString());
-*/
-
 const defgate = execSync("/srv/server/ip.sh").toString().slice(0,-1);
 
-let mysqlblock = {
+const SQL_PROT = {
  host: defgate,
  user: "uname",
  password: "pass",
  port: "3306",
- database: "pcr",
+ database: "pcr"
 }
 
-let con = mysql.createPool(mysqlblock);
+let sqs = [];
+let ips = [];
+let iks = [];
+
+//let con = mysql.createPool(mysqlblock);
 
 app.use((req,res,next) =>
 {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
 });
+
+app.use(express.json());
 
 function sanitize(q) {
   return q.replaceAll(" ","_");
 };
 
-app.get("/", (req, res) => {
+/*app.get("/", (req, res) => {
   res.sendFile("/srv/client/public/index.html");
 });
+*/
+
+async function mkeys(){
+  return Promise.resolve(
+    await crypto.subtle.generateKey({
+      name:'RSA-OAEP',
+      modulusLength:2048,
+      publicExponent:new Uint8Array([1,0,1]),
+      hash:'SHA-256'
+  },true,['encrypt','decrypt']));
+}
+
+async function exp(uk){
+  return Promise.resolve(
+    Buffer.from(
+      await crypto.subtle.exportKey(
+        'spki',
+        uk
+    )).toString('base64'));
+}
+
+async function dec(i,b){
+  return Promise.resolve(
+    await crypto.subtle.decrypt(
+      {name:'RSA-OAEP'},
+      iks[i],
+      b
+  ));
+}
 
 app.get("/getkey", (req, res) => {
-  keypair = crypto.generateKeyPairSync("rsa",{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'der'}});
-  console.log(keypair.publicKey);
-  res.json({key:keypair.publicKey});
+  console.log('Key requested '+req.ip);
+  let i = ips.length;
+  ips[i] = req.ip; 
+  mkeys().then(
+    async kp=>{
+      iks[i] = kp.privateKey;
+      let uk = await exp(kp.publicKey)
+      res.json({s:0,k:uk});
+    },
+    e=>{
+      const E = 'Failed to generate keys';
+      console.log(E+' (/getkey)');
+      console.error(e);
+      res.json({s:1,e:E});
+  })
 }); 
 
-app.get("/login/:uname.:pass", (req, res) => {
-  let decrypted;
+app.post("/login", (req,res) => {
+  console.log('Login attempt'+req.ip);
 
-  try {
-    decrypted = crypto.privateDecrypt({key:keypair.privateKey},pass);
-  } catch (e) {
-    res.json({ message: 1}); console.log(e);
-  }
+  let i = ips.indexOf(req.ip);
+  dec(i,Buffer.from(req.body.pass,'base64'))
+  .then(
+    p=>{
+      sqs[i] = SQL_PROT;
+      sqs[i].user = req.body.uname;
+      sqs[i].password = p;
+      let sql = ";";
+      mysql.createPool(sqs[i]).query(
+        sql,(e,r)=>{
+          if(e){
+            const E = 'Failed to database';
+            console.log(E+' (/login)');
+            console.error(e);
+            res.json({s:1,e:E});
+          }else{
+            res.json({s:0,m:r});
+        }}
+    );},
+    e=>{
+      console.log('Failed to decrypt (/login)');
+      console.error(e); 
+      res.json({s:2,e:E});
+  });
+});
 
-  mysqlblock.user = req.params.uname;
-  mysqlblock.password = decrypted;
-  con = mysql.createPool(mysqlblock);
-
-  let sql = ';';
-  con.query(sql, function (err, result) {
-    if (err) {res.json({ message: 2}); console.log(err);}
-    else {res.json({ message: 0, sqlret: result });}
+app.get("/pair", (req, res) => {
+  console.log(req.ip);
+  crypto.subtle.generateKey({
+    name:'RSA-OAEP',
+    modulusLength:2048,
+    publicExponent:new Uint8Array([1,0,1]),
+    hash:'SHA-256'
+  },true,['encrypt','decrypt'])
+  .then(
+    async kp=>{
+      let uk = await crypto.subtle.exportKey('spki',kp.publicKey);
+      let ik = await crypto.subtle.exportKey('pkcs8',kp.privateKey);
+      let ke = [uk,ik];
+      console.log('Exported keys');
+      mrfiddle = Uint8Array.from(Buffer.from(JSON.parse(JSON.stringify(Buffer.from(uk)))));
+      let bf = Buffer.from(uk);
+      console.log(bf);
+      console.log(Buffer.from(bf.toString('base64'),'base64'));
+      let nk = await crypto.subtle.importKey('spki',mrfiddle,{hash:'SHA-256',name:'RSA-OAEP'},true,['encrypt'])
+      let enc = await crypto.subtle.encrypt({name:'RSA-OAEP'},nk,Buffer.from('PASS'));
+      let dec = await crypto.subtle.decrypt({name:'RSA-OAEP'},kp.privateKey,enc);
+      console.log(Buffer.from(dec).toString('utf-8'));
+      console.log(await Promise.resolve('cat'));
+      res.json({s:0,keys:ke});
+    },
+    e=>{
+      console.log('Failed to generate key pair (/pair)');
+      console.error(e);
+      res.json({s:1});
   });
 });
 
@@ -94,10 +169,12 @@ app.get("/static/:mime/:file", (req,res) => {
 });
 
 app.get("/api/:param1.:param2", (req, res) => {
+  console.log(JSON.stringify(req.params));
+  console.log('api');
   res.json({ message: "Serv()r", params: JSON.stringify(req.params) });
 });
 
-app.get("/create/:fname.:lname", (req, res) => {
+app.post("/create/:fname.:lname", (req, res) => {
   let sql = `INSERT INTO test (firstname, lastname) VALUES ('${sanitize(req.params.fname)}', '${sanitize(req.params.lname)}');`;
   con.query(sql, function (err, result) {
     if (err) {res.json({ message: "Failed"}); console.log(err);}

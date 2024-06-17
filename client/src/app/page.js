@@ -1,9 +1,10 @@
 'use client'
 
 import React from "react";
-import Image from "next/image";
+//import Image from "next/image";
 import styles from "./page.module.css";
-import crypto from "crypto";
+
+const STATIC_PAS = "PasS";
 
 function bossinterface(){
 }
@@ -13,59 +14,99 @@ function empinterface(){
 
 export default function Home(){
 
-  function encrypt(pass){
-    let key;
-
+  async function api(){
     try{
-      fetch('http://localhost:5000/getkey')
-        .then((res) => res.json())
-        .then((data) => {console.log(data);key=data.key;});
-    } catch(e){
+      let data = await fetch(`http://localhost:5000/api/kitty.cat`).then((res) => res.json());
+      setstatus(data.params);
+    }catch(e){
+      console.log('O NOES ECHO FAILED!');
+      console.error(e);
+      setstatus('Api echo failed');
+  }}
+
+  async function encrypt(pass){
+
+    let keyr;
+    try{
+      keyr = await fetch('http://localhost:5000/getkey')
+      .then((res) => res.json());
+    }catch(e){
       console.log('Failed to retrieve key from backend: "Home/encrypt)');
-      console.log(e);
+      console.error(e);
       setstatus('Failed to retrieve key');
     }
-    console.log(key);
-    let encrypted;
 
+//    console.log(keyr);
+    let k = Uint8Array.from(Buffer.from(keyr.k,'base64'));
+/*    console.log(Buffer.from(keyr.k));
+    console.log(Uint8Array.from(Buffer.from(keyr.k)));
+*/
+    let key;
     try{
-      encrypted = crypto.publicEncrypt({key:key},pass);
+      key = await crypto.subtle.importKey(
+        'spki',
+        k,
+        {name:'RSA-OAEP',hash:'SHA-256'},
+        true,
+        ['encrypt']
+      );
+    }catch(e){
+      console.log('Failed to process key');
+      console.error(e);
+      setstatus('Failed to process key');
     }
-    catch(e){
+
+    let encrypted;
+    try{
+      encrypted = Buffer.from(new Uint8Array(
+        await crypto.subtle.encrypt({name:'RSA-OAEP'},key,Buffer.from(STATIC_PAS))
+      )).toString('base64');
+    }catch(e){
       console.log('Failed to encrypt "Home/encrypt"');
       console.error(e);
       setstatus('Failed to encrypt');
     }
 
-    return encrypted;
+    pass = null; key = null;
+    return Promise.resolve(encrypted);
   }
 
-  function sendLogin(){
+  async function sendLogin(){
     let uname = document.getElementById('unamebox').value;
     let pass = document.getElementById('passbox').value;
     document.getElementById('passbox').value = '';
 
-    let encrypted;
-
+    let encrypted = '';
     try{
-       encrypted = encrypt(pass);
-    } catch(e){
-      console.log('Failed to encrypt "home/sendLogin"');
+      encrypted = await encrypt(STATIC_PAS);
+    }catch(e){
+      console.error('Failed to encrypt "home/sendLogin"');
       console.log(e);
       setstatus('Failed to encrypt');
     }
-
     pass = '';
 
+    console.log('AGAIN:'+encrypted);
+
+    let didlogin = {s:4};
     try {
-      fetch(`http://localhost:5000/login/${uname}.${encrypted}`)
-        .then((res) => res.json())
-        .then((data) => setstatus( data.message === 0 ? 'Login Accpeted' : 'Login Failed '+data.message));
-    } catch(e){
+      didlogin = await fetch('http://localhost:5000/login/',{
+        method:'POST',
+//        mode:'cors',
+//        cache:'no-cache',
+//        credentials:'same-origin',
+        headers:{"Content-type":"application/json"},
+//        redirect:'follow',
+//        referrerPolicy:'no-referrer',
+        body:JSON.stringify({uname:uname,pass:encrypted})
+      }).then((res) => res.json());
+    }catch(e){
       console.log('Failed to connect to backend "Home/sendLogin"');
-      console.log(e);
+      console.error(e);
       setstatus('Login Failed');
     }
+
+    setstatus(didlogin.s === 0 ? 'Login Accpeted' : 'Login Failed '+didlogin.s);
   }
 
   function loginBoss(){
@@ -79,6 +120,7 @@ export default function Home(){
   }
 
   const [status,setstatus] = React.useState("Wilkommen");
+//  const [key,setkey] = React.useState();
 
   return (
     <main className={styles.main}>
@@ -92,7 +134,7 @@ export default function Home(){
         </div>
         <div className={styles.halves}>
           <button onClick={loginBoss}>Log In Supervisor</button>
-          <button onClick={loginEmp}>Log In Employee</button>
+          <button onClick={api}>Log In Employee</button>
         </div>
       </div>
     </main>  
