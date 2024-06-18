@@ -8,21 +8,9 @@ const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
 
-const defgate = execSync("/srv/server/ip.sh").toString().slice(0,-1);
-
-const SQL_PROT = {
- host: defgate,
- user: "uname",
- password: "pass",
- port: "3306",
- database: "pcr"
-}
-
-let sqs = [];
-let ips = [];
-let iks = [];
-
-//let con = mysql.createPool(mysqlblock);
+/***
+ S001 START NON-ROUTE MIDDLEWARE
+ ***/
 
 app.use((req,res,next) =>
 {
@@ -31,95 +19,26 @@ app.use((req,res,next) =>
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
 });
-
 app.use(express.json());
 
-function sanitize(q) {
-  return q.replaceAll(" ","_");
-};
+console.log('Non-route middleware configured');
 
-/*app.get("/", (req, res) => {
-  res.sendFile("/srv/client/public/index.html");
-});
-*/
+/***
+ E001 END NON-ROUTE MIDDLEWARE
+ S002 START DEBUG ROUTES
+ ***/
 
-async function mkeys(){
-  return Promise.resolve(
-    await crypto.subtle.generateKey({
-      name:'RSA-OAEP',
-      modulusLength:2048,
-      publicExponent:new Uint8Array([1,0,1]),
-      hash:'SHA-256'
-  },true,['encrypt','decrypt']));
-}
-
-async function exp(uk){
-  return Promise.resolve(
-    Buffer.from(
-      await crypto.subtle.exportKey(
-        'spki',
-        uk
-    )).toString('base64'));
-}
-
-async function dec(i,b){
-  return Promise.resolve(
-    await crypto.subtle.decrypt(
-      {name:'RSA-OAEP'},
-      iks[i],
-      b
-  ));
-}
-
-app.get("/getkey", (req, res) => {
-  console.log('Key requested '+req.ip);
-  let i = ips.length;
-  ips[i] = req.ip; 
-  mkeys().then(
-    async kp=>{
-      iks[i] = kp.privateKey;
-      let uk = await exp(kp.publicKey)
-      res.json({s:0,k:uk});
-    },
-    e=>{
-      const E = 'Failed to generate keys';
-      console.log(E+' (/getkey)');
-      console.error(e);
-      res.json({s:1,e:E});
-  })
-}); 
-
-app.post("/login", (req,res) => {
-  console.log('Login attempt'+req.ip);
-
-  let i = ips.indexOf(req.ip);
-  dec(i,Buffer.from(req.body.pass,'base64'))
-  .then(
-    p=>{
-      sqs[i] = SQL_PROT;
-      sqs[i].user = req.body.uname;
-      sqs[i].password = p;
-      let sql = ";";
-      mysql.createPool(sqs[i]).query(
-        sql,(e,r)=>{
-          if(e){
-            const E = 'Failed to database';
-            console.log(E+' (/login)');
-            console.error(e);
-            res.json({s:1,e:E});
-          }else{
-            res.json({s:0,m:r});
-        }}
-    );},
-    e=>{
-      console.log('Failed to decrypt (/login)');
-      console.error(e); 
-      res.json({s:2,e:E});
-  });
+app.get("/api/:param1.:param2", (req, res) => {
+  console.log(JSON.stringify(req.params));
+  console.log(JSON.stringify(req.body));
+  console.log(req.ip);
+  console.log('api');
+  res.json({ s:0, message: "Serv()r", params: JSON.stringify(req.params) });
 });
 
 app.get("/pair", (req, res) => {
   console.log(req.ip);
+
   crypto.subtle.generateKey({
     name:'RSA-OAEP',
     modulusLength:2048,
@@ -150,11 +69,193 @@ app.get("/pair", (req, res) => {
   });
 });
 
-app.get("/logout", (req, res) => {
-  mysqlblock.user = "uname";
-  mysqlblock.password = "pass";
-  con = mysql.createPool(mysqlblock);
+console.log('Debug routes registered');
+/***
+ E002 END DEBUG ROUTES
+ S003 START SQL CONSTANTS
+ ***/
+
+const DEFGATE = execSync("/srv/server/ip.sh").toString().slice(0,-1);
+console.log('DB IP '+DEFGATE);
+
+const SQL_PROT = {
+  host: DEFGATE,
+  user: "uname",
+  password: "pass",
+  port: "3306",
+  database: "pcr"
+}
+
+let sqs = [];
+let ips = [];
+let iks = [];
+
+console.log('SQL constants defined');
+/***
+ E003 END SQL CONSTANTS
+ S004 START HELPER FUNCTIONS
+ ***/
+
+function sanitize(q) {
+  return q.replaceAll(" ","_");
+};
+
+async function mkeys(){
+  return Promise.resolve(
+    await crypto.subtle.generateKey({
+      name:'RSA-OAEP',
+      modulusLength:2048,
+      publicExponent:new Uint8Array([1,0,1]),
+      hash:'SHA-256'
+  },true,['encrypt','decrypt']));
+}
+
+async function exp(uk){
+  return Promise.resolve(
+    Buffer.from(
+      await crypto.subtle.exportKey(
+        'spki',
+        uk
+    )).toString('base64'));
+}
+
+async function dec(i,b){
+  return Promise.resolve(
+    await crypto.subtle.decrypt(
+      {name:'RSA-OAEP'},
+      iks[i],
+      b
+  ));
+}
+
+function sqlq(i,q,res){
+  sqs[i].query(q,(e,r)=>{if(e){
+    const E = 'Failed to database';
+    console.log(E);
+    console.error(e);
+    res.json({s:2,e:E});
+  }else{
+    res.json({s:0,m:r});
+  }});
+}
+
+// ( req from routing functions, res from routing functions , f callback function )
+function checkip(req,res,f){
+  let i = ips.indexOf(req.ip)
+  if(i<0){
+    let E = 'IP not registered';
+    console.error(E);
+    res.json({s:1,e:E});
+  }
+  else{
+   f(req,res,i);
+  }
+}
+
+console.log('Helper functions defined');
+/***
+ E004 END HELPER FUNCTIONS
+ S005 START ROUTES
+ ***/
+
+app.get("/getkey", (req, res) => {
+  console.log('Key requested '+req.ip);
+  let i = ips.indexOf(req.ip);
+
+  if(i !== -1){
+    console.log('Record exists for '+req.ip+'--logging out.')
+    ips[i] = null;
+    ips = ips.filter(ip=>ip);
+    sqs[i] = null;
+    sqs = sqs.filter(sq=>sq);
+    iks[i] = null;
+    iks = iks.filter(ik=>ik);
+  }
+
+  i = ips.length;  
+  ips[i] = req.ip; 
+  mkeys().then(
+    async kp=>{
+      iks[i] = kp.privateKey;
+      let uk = await exp(kp.publicKey)
+      res.json({s:0,k:uk});
+    },
+    e=>{
+      const E = 'Failed to generate keys';
+      console.log(E+' (/getkey)');
+      console.error(e);
+      res.json({s:1,e:E});
+  })
+}); 
+
+app.post("/login", (req,res) => {
+  console.log('Login attempt'+req.ip);
+
+  checkip(req,res,(req,res,i)=>{
+    dec(i,Buffer.from(req.body.pass,'base64'))
+    .then(
+      p=>{
+        let poolconf = SQL_PROT;
+        poolconf.user = req.body.uname;
+        poolconf.password = 'bossman';// Buffer.from(p).toString();
+        sqs[i] = mysql.createPool(poolconf);
+        poolconf = null;
+        p = null;
+
+        sqlq(i,'show tables;',res);
+      },
+      e=>{
+        const E = 'Failed to decrypt'
+        console.log(E+' (/login)');
+        console.error(e); 
+        res.json({s:1,e:E});
+      }
+    );
+  });
 });
+
+app.get("/logout", (req, res) => {
+  console.log('Logout request '+req.ip);
+
+  checkip(req,res,(req,res,i)=>{
+    console.log(ips+'\n'+sqs+'\n'+iks);
+
+    ips[i] = null;
+    ips = ips.filter(ip=>ip);
+    sqs[i] = null;
+    sqs = sqs.filter(sq=>sq);
+    iks[i] = null;
+    iks = iks.filter(ik=>ik);
+
+    console.log(ips+'\n'+sqs+'\n'+iks);
+    res.json({s:0});    
+  });
+});
+
+app.post("/reset",(req,res)=>{
+  console.log('Reset request from '+req.ip)
+
+  if(req.body.checkphrase === 'reset'){
+    ips=[];
+    sqs=[];
+    iks=[];
+    res.json({s:0});
+  }else{
+    let E = 'Checkphrase mismatch';
+    console.log(E+' (/reset)');
+    res.json({s:1,e:E});
+  }
+});
+
+console.log('Production routes registered');
+/***
+ E005 END PRODUCTION ROUTES
+ ***/
+
+/*app.get("/", (req, res) => {
+  res.sendFile("/srv/client/public/index.html");
+});
+*/
 
 /*app.get("/favicon.ico", (req,res) => {
   res.setHeader("Content-Type", "image/vnd.microsoft.icon");
@@ -166,12 +267,6 @@ app.get("/static/:mime/:file", (req,res) => {
   const mimetype = execSync(`${catline}`).toString().slice(0,-1);
   res.setHeader("Content-Type", mimetype);
   res.sendFile(`build/static/${req.params.mime}/${req.params.file}`);
-});
-
-app.get("/api/:param1.:param2", (req, res) => {
-  console.log(JSON.stringify(req.params));
-  console.log('api');
-  res.json({ message: "Serv()r", params: JSON.stringify(req.params) });
 });
 
 app.post("/create/:fname.:lname", (req, res) => {
