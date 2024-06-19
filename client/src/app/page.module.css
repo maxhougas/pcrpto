@@ -37,31 +37,47 @@
   border-radius: var(--border-radius);
 }
 
-.whole {
- display: flex;
- width: 100%;
- align-itmes: center;
- justify-content: center;
- align-text: center;
- padding: 1rem;
- background-color: rgba(var(--callout-rgb), 0.5);
- border: 1px solid rgba(var(--callout-border-rgb), 0.3);
- border-radius: var(--border-radius);
- font-size: 24px;
+.whole text {
+  display: flex;
+  width: 100%;
+/*  align-items: center;*/
+  justify-content: center;
+/*  align-text: center;*/
+  padding: 1rem;
+  background-color: rgba(var(--callout-rgb), 0.9);
+  border: 1px solid rgba(var(--callout-border-rgb), 0.3);
+  border-radius: var(--border-radius);
+  font-size: 24px;
+}
+
+.description input {
+  font-size: 24px;
+  border-radius: var(--border-radius);
+  background-color: rgba(var(--callout-rgb), 0.9);
+  border: solid rgba(var(--callout-border-rgb), 1.0);
+  padding: 1rem;
 }
 
 .halves input {
- width: 50%;
- font-size: 24px;
- border-radius: var(--border-radius);
- padding: 1rem;
+  width: 50%;
+}
+
+.whole input {
+  width: 100%;
+}
+
+.description button {
+  font-size: 24px;
+  border-radius: var(--border-radius);
+  padding: 1rem;
 }
 
 .halves button {
- width: 50%;
- font-size: 24px;
- border-radius: var(--border-radius);
- padding: 1rem;
+  width: 50%;
+}
+
+.whole button {
+  width: 100%;
 }
 
 .code {

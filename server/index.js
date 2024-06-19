@@ -76,7 +76,6 @@ console.log('Debug routes registered');
  ***/
 
 const DEFGATE = execSync("/srv/server/ip.sh").toString().slice(0,-1);
-console.log('DB IP '+DEFGATE);
 
 const SQL_PROT = {
   host: DEFGATE,
@@ -145,7 +144,7 @@ function checkip(req,res,f){
   if(i<0){
     let E = 'IP not registered';
     console.error(E);
-    res.json({s:1,e:E});
+    res.json({s:2,e:E});
   }
   else{
    f(req,res,i);
