@@ -1,100 +1,144 @@
+export const BACKEND = 'http://localhost:5000/'
+
+/***
+ E000 END CONSTANTS
+ S001 START FUNCTIONS
+ ***/
+
 export function api(){
-  let r = null;
   return fetch(`http://localhost:5000/api/kitty.cat`)
     .then(res=>res.json())
     .then(
-      j => r=j,
+      j => {console.log('kitty');j;},
       e => {throw e;console.log('API Echo Failed "reqs/api"');}
     );
-  return r;
 }
 
-async function getkey(){
-  let r;
-  fetch('http://localhost:5000/getkey')
-  .then((res) => res.json())
-  .then(jso => {return jso}, e=>{
-    let E = 'Failed to retrieve key';
-    console.log(E+ ' "reqs/getkey"');
-    console.error(e);
+export function genreq(m,u,b){
+  return fetch(BACKEND+u,{
+    method:m,
+    headers:{"Content-Type":"application/json"},
+    body: m === 'POST' ? JSON.stringify(b) : null
+  }).then(
+    res => res.json(),
+    err => {throw generr('Connection Failed: '+url,err);}
+  );
+}
+
+export function getu(u){
+  return fetch(u)
+  .then(
+    res => res.json(),
+    err => {
+      console.error(err);
+      console.log('Failed GET on '+u);
+      throw err;
   });
 }
 
-async function processkey(k){
-  let keyb = Uint8Array.from(Buffer.from(k,'base64'));
-  let key;
-
-  try{
-    key = await crypto.subtle.importKey(
-      'spki',
-      keyb,
-      {name:'RSA-OAEP',hash:'SHA-256'},
-      true,
-      ['encrypt']
-    );
-  }catch(e){
-    console.error('Failed to process key "reqs/processKey"');
-    throw e;
-  }
-
-  return key;
+export function postu(u,b){
+  return fetch(u,phead(b))
+  .then(
+    res => res.json(),
+    err => {
+      console.error(err);
+      console.log('Failed POST on '+u);
+      throw err;
+  });
 }
 
-async function encrypt(k,pass){
-  let encrypted;
+function getkey(){
+  let me = 'functions.getkey';
 
-  try{
-    encrypted = Buffer.from(new Uint8Array(
-      await crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
-    )).toString('base64');
-  }catch(e){
-    console.error('Failed to encrypt "reqs/encrypt"');
-    throw e;
-  }
-
-  pass = null; k = null;
-  return encrypted;
+  return getu('http://localhost:5000/getkey')
+  .then(
+    key => processkey(Uint8Array.from(Buffer.from(key,'base64'))),
+    err => {
+      console.error(err);
+      console.log('Failed to Retrieve Key');
+      throw err;
+  });
 }
 
-export function sendlogin(uname,pass){
-  let r = null;
-  fetch('http://localhost:5000/login/',{
-    method:'POST',
-    headers:{"Content-type":"application/json"},
-    body:JSON.stringify({
-      uname:uname,
-      pass: encrypt(processkey((getkey()).k),pass)
-    })
-  })
-    .then(res => res.json())
-    .then(
-      j => r=j,
-      e => {throw e;console.log('Failed to connect to backend "reqs/sendlogin"');
-    });
-
-  return r;
+export function processkey(k){
+  return crypto.subtle.importKey(
+    'spki',
+    k,
+    {name:'RSA-OAEP',hash:'SHA-256'},
+    true,
+    ['encrypt']
+  )
 }
 
-export function logout(){
-  let r = null;
-  fetch('http://localhost:5000/logout')
-    .then(res => res.json())
-    .then(
-      j => r=j,
-      e => {throw e;console.log('Failed Log Out "reqs/logout');}
-  );
-  return r;
+export function encrypt(k,pass){
+  return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
+  .then(
+    enc => Buffer.from(new Uint8Array(enc)).toString('base64'),
+    err => {
+      console.error(err);
+      console.log('Failed Encrypting "functions.encrypt"');
+      throw err;
+  });
 }
 
-/***
- S001 START ERROR FUNCTIONS
+export function login(keyprom){
+ // genreq('GET','getkey',null)
+  return keyprom.then(
+    jso => processkey(Uint8Array.from(Buffer.from(jso,'Base64'))),
+    err => {throw fun.generr('JSON Error in functions.login: '+BACKEND+'getkey',err);}
+  ).then(
+    key => encrypt(key,document.getElementById('ii1').value),
+    err => {throw fun.generr('Failed to import public key');}
+  ).then(
+    enc => fun.genreq('POST','login',{uname:document.getElementById('ii0').value,pass:enc}),
+    err => {throw fun.generr('Failed to encrypt in');}
+  );/*.then(
+    jso => switchpage(SBOSS,PBOSS),
+    err => {setstatus(SLOGINF);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
+  );*/
+}
+
+/***	
+ E001 END FUNCTIONS
+ S002 START ERROR FUNCTIONS
  ***/
 
-export function FtCError(calling,err){
-  let E = 'Failed to Connect '+calling;
+export function ftcerr(calling,err){
+  let E = 'Failed to Connect';
   console.error(err);
-  console.log(E);
+  console.log(E+' '+calling);
   return E;
 }
 
-export fun
+export function jsonerr(calling,err){
+  let E = 'JSON failed';
+  console.error(err);
+  console.log(E+' '+calling);
+  return E;
+}
+
+export function generr(m,err){
+  console.log(m);
+  console.error(err);
+  return err;
+}
+
+
+/***
+ E002 END ERROR FUNCTIONS
+ S003 START CLASSES
+***/
+
+const PHEAD_PROT = {
+  method: 'POST',
+  headers:{"Content-type":"application/json"},
+  body:JSON.stringify({uname:'uname',pass:'pass'})
+};
+
+export function phead(b){
+  return {
+    method:'POST',
+    headers:{"Content-type":"application/json"},
+    body:JSON.stringify(b)
+  }
+}

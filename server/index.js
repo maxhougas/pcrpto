@@ -3,7 +3,8 @@
 const express = require("express");
 const PORT = process.env.PORT || 5000;
 const app = express();
-const mysql = require("mysql2");
+//const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
@@ -22,7 +23,6 @@ app.use((req,res,next) =>
 app.use(express.json());
 
 console.log('Non-route middleware configured');
-
 /***
  E001 END NON-ROUTE MIDDLEWARE
  S002 START DEBUG ROUTES
@@ -34,6 +34,11 @@ app.get("/api/:param1.:param2", (req, res) => {
   console.log(req.ip);
   console.log('api');
   res.json({ s:0, message: "Serv()r", params: JSON.stringify(req.params) });
+});
+
+app.post("/echo", (req,res) => {
+  console.log('API POST echo request from '+req.ip);
+  res.json(req.body);
 });
 
 app.get("/pair", (req, res) => {
@@ -85,6 +90,16 @@ const SQL_PROT = {
   database: "pcr"
 }
 
+function poolconf(uname,pass){
+  return {
+    host: DEFGATE,
+    user: uname,
+    password: pass,
+    port: "3306",
+    database: "pcr"
+  };
+}
+
 let sqs = [];
 let ips = [];
 let iks = [];
@@ -95,140 +110,138 @@ console.log('SQL constants defined');
  S004 START HELPER FUNCTIONS
  ***/
 
+function purger(i){
+  ips[i]=null;ips=ips.filter(ip=>ip);
+  iks[i]=null;iks=iks.filter(ik=>ik);
+  sqs[i]=null;sqs=sqs.filter(sq=>sq);
+  console.log('IP registration purged');
+}
+
 function sanitize(q) {
   return q.replaceAll(" ","_");
 };
 
-async function mkeys(){
-  return Promise.resolve(
-    await crypto.subtle.generateKey({
+function mkeys(){
+  return crypto.subtle.generateKey({
       name:'RSA-OAEP',
       modulusLength:2048,
       publicExponent:new Uint8Array([1,0,1]),
       hash:'SHA-256'
-  },true,['encrypt','decrypt']));
+  },true,['encrypt','decrypt']);
 }
 
-async function exp(uk){
-  return Promise.resolve(
-    Buffer.from(
-      await crypto.subtle.exportKey(
-        'spki',
-        uk
-    )).toString('base64'));
+function exp(uk){
+  return crypto.subtle.exportKey('spki', uk)
+  .then(
+    key => Buffer.from(new Uint8Array(key)).toString('base64'),
+    err => {
+      console.error(err);
+      console.log('Failed to Export Key');
+  });
 }
 
-async function dec(i,b){
-  return Promise.resolve(
-    await crypto.subtle.decrypt(
-      {name:'RSA-OAEP'},
-      iks[i],
-      b
-  ));
+function dec(i,b){
+  return crypto.subtle.decrypt(
+    {name:'RSA-OAEP'},
+    iks[i],
+    b
+  );
 }
 
-function sqlq(i,q,res){
-  sqs[i].query(q,(e,r)=>{if(e){
-    const E = 'Failed to database';
-    console.log(E);
-    console.error(e);
-    res.json({s:2,e:E});
-  }else{
-    res.json({s:0,m:r});
-  }});
+function checkindex(res,i){
+  if(i === -1){
+    console.error( 
+      'Record not found found.\n'+ 
+      'IP & Private Key should have been registered by "/getkey"\n'+
+      'Sending CORS error to client.'
+    );
+    res.send(''); //Empty string triggers CORS error in client.
+  }
 }
 
-// ( req from routing functions, res from routing functions , f callback function )
-function checkip(req,res,f){
+// ( req from routing functions )
+function checkip(req){
   let i = ips.indexOf(req.ip)
-  if(i<0){
-    let E = 'IP not registered';
-    console.error(E);
-    res.json({s:2,e:E});
-  }
-  else{
-   f(req,res,i);
-  }
+  return (i !== -1)
 }
 
 console.log('Helper functions defined');
 /***
  E004 END HELPER FUNCTIONS
- S005 START ROUTES
+ S005 START PRODUCTION ROUTES
  ***/
 
 app.get("/getkey", (req, res) => {
   console.log('Key requested '+req.ip);
-  let i = ips.indexOf(req.ip);
 
+  let i = ips.indexOf(req.ip);
   if(i !== -1){
     console.log('Record exists for '+req.ip+'--logging out.')
-    ips[i] = null;
-    ips = ips.filter(ip=>ip);
-    sqs[i] = null;
-    sqs = sqs.filter(sq=>sq);
-    iks[i] = null;
-    iks = iks.filter(ik=>ik);
+    purger(i);
   }
 
   i = ips.length;  
   ips[i] = req.ip; 
+
+  function handlekp(i,kp){
+    iks[i] = kp.privateKey;
+    return exp(kp.publicKey);
+  }
+
   mkeys().then(
-    async kp=>{
-      iks[i] = kp.privateKey;
-      let uk = await exp(kp.publicKey)
-      res.json({s:0,k:uk});
-    },
-    e=>{
-      const E = 'Failed to generate keys';
-      console.log(E+' (/getkey)');
-      console.error(e);
-      res.json({s:1,e:E});
-  })
+    kp => handlekp(i,kp),
+    err => {
+      console.error(err);
+      console.log('Failed to generate key pair "index.getkey"');
+      throw err;
+  }).then(
+    uk => res.json(uk),
+    err => {
+      console.error(err);
+      console.log('Failed to export public key "index.getkey"');
+      purger(i);
+  });
 }); 
 
 app.post("/login", (req,res) => {
   console.log('Login attempt'+req.ip);
 
-  checkip(req,res,(req,res,i)=>{
-    dec(i,Buffer.from(req.body.pass,'base64'))
-    .then(
-      p=>{
-        let poolconf = SQL_PROT;
-        poolconf.user = req.body.uname;
-        poolconf.password = 'bossman';// Buffer.from(p).toString();
-        sqs[i] = mysql.createPool(poolconf);
-        poolconf = null;
-        p = null;
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+  console.log('Forging uname and pass');
+  sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
 
-        sqlq(i,'show tables;',res);
-      },
-      e=>{
-        const E = 'Failed to decrypt'
-        console.log(E+' (/login)');
-        console.error(e); 
-        res.json({s:1,e:E});
-      }
-    );
+  dec(i,Buffer.from(req.body.pass,'base64'))
+  .then(
+    pas => sqs[i].query('show tables;'),//gensqlpool(res,i,req.body.uname,pas),
+    err => {
+      console.error(err); 
+      console.log('Failed to decrypt @/login)');
+      throw err;
+  })
+  .then(
+    sqlr => res.json(sqlr[0]),
+    err => {
+      console.error(err);
+      console.log('Sql Failed--probably credentials rejected @/login');
+      purger(i);
+      res.send(''); //Generate COPS error
   });
 });
 
+
 app.get("/logout", (req, res) => {
   console.log('Logout request '+req.ip);
+  let i = ips.indexOf(req.ip);
+  
+  if(i > -1){
+    purger(i);
+    console.log('Log out completed.');
+  }else{
+    console.log('IP not found; no action taken.');
+  }
 
-  checkip(req,res,(req,res,i)=>{
-    console.log(ips+'\n'+sqs+'\n'+iks);
-
-    ips[i] = null;
-    ips = ips.filter(ip=>ip);
-    sqs[i] = null;
-    sqs = sqs.filter(sq=>sq);
-    iks[i] = null;
-    iks = iks.filter(ik=>ik);
-
-    console.log(ips+'\n'+sqs+'\n'+iks);
-    res.json({s:0});    
-  });
+  res.json({s:0});
 });
 
 app.post("/reset",(req,res)=>{
@@ -240,9 +253,8 @@ app.post("/reset",(req,res)=>{
     iks=[];
     res.json({s:0});
   }else{
-    let E = 'Checkphrase mismatch';
-    console.log(E+' (/reset)');
-    res.json({s:1,e:E});
+    console.error('Check phrase mismatch @/reset');
+    res.send(''); //Trigger CORS error
   }
 });
 
