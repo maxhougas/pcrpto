@@ -61,8 +61,9 @@ app.get("/pair", (req, res) => {
       console.log(bf);
       console.log(Buffer.from(bf.toString('base64'),'base64'));
       let nk = await crypto.subtle.importKey('spki',mrfiddle,{hash:'SHA-256',name:'RSA-OAEP'},true,['encrypt'])
-      let enc = await crypto.subtle.encrypt({name:'RSA-OAEP'},nk,Buffer.from('PASS'));
-      let dec = await crypto.subtle.decrypt({name:'RSA-OAEP'},kp.privateKey,enc);
+      let enc = Buffer.from(await crypto.subtle.encrypt({name:'RSA-OAEP'},nk,Buffer.from('PASS'))).toString('Base64');
+      console.log(enc);
+      let dec = await crypto.subtle.decrypt({name:'RSA-OAEP'},kp.privateKey,Buffer.from(enc,'Base64'));
       console.log(Buffer.from(dec).toString('utf-8'));
       console.log(await Promise.resolve('cat'));
       res.json({s:0,keys:ke});
@@ -165,6 +166,14 @@ function checkip(req){
   return (i !== -1)
 }
 
+function qandres(res,i,q){
+  sqs[i].query(q)
+  .then(
+    sql => res.json(sql),
+    err => {console.log('SQL Error: '+q);console.error(err);}
+  );
+}
+
 console.log('Helper functions defined');
 /***
  E004 END HELPER FUNCTIONS
@@ -208,22 +217,29 @@ app.post("/login", (req,res) => {
 
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
-  console.log('Forging uname and pass');
-  sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
+//  console.log('Forging uname and pass');
+//  sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
 
-  dec(i,Buffer.from(req.body.pass,'base64'))
+  function mkpoolandq(pas){
+    console.log('Forging uname and pass'+Buffer.from(pas).toString());
+    sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
+//    sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
+    return sqs[i].query('show tables;');
+  }
+
+  dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64')))
   .then(
-    pas => sqs[i].query('show tables;'),//gensqlpool(res,i,req.body.uname,pas),
+    pas => mkpoolandq(pas),//sqs[i].query('show tables;'),//gensqlpool(res,i,req.body.uname,pas),
     err => {
       console.error(err); 
-      console.log('Failed to decrypt @/login)');
+      console.log('Failed to decrypt @ /login)');
       throw err;
   })
   .then(
     sqlr => res.json(sqlr[0]),
     err => {
       console.error(err);
-      console.log('Sql Failed--probably credentials rejected @/login');
+      console.log('Sql Failed--probably credentials rejected @ /login');
       purger(i);
       res.send(''); //Generate COPS error
   });
@@ -253,10 +269,25 @@ app.post("/reset",(req,res)=>{
     iks=[];
     res.json({s:0});
   }else{
-    console.error('Check phrase mismatch @/reset');
+    console.error('Check phrase mismatch @ /reset');
     res.send(''); //Trigger CORS error
   }
 });
+
+app.post("/lemp",(req,res)=>{
+  console.log('List employees request from '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+
+  qandres(res,i,'select users from mysql.users');
+
+/*  sqs[i].query('select user from mysql.user;')
+  .then(
+    sql => res.json(mysql),
+    err => {;}
+  );
+*/
+})
 
 console.log('Production routes registered');
 /***

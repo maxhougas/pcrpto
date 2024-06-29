@@ -47,8 +47,14 @@ export function postu(u,b){
   });
 }
 
-function getkey(){
-  let me = 'functions.getkey';
+export function getkey(){
+  return genreq('GET','getkey',null)
+  .then(
+    key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
+    err => {generr('JSON Error: '+BACKEND+'getkey',err);}
+  )
+
+/*  let me = 'functions.getkey';
 
   return getu('http://localhost:5000/getkey')
   .then(
@@ -58,6 +64,7 @@ function getkey(){
       console.log('Failed to Retrieve Key');
       throw err;
   });
+*/
 }
 
 export function processkey(k){
@@ -67,19 +74,19 @@ export function processkey(k){
     {name:'RSA-OAEP',hash:'SHA-256'},
     true,
     ['encrypt']
-  )
+  );
 }
 
 export function encrypt(k,pass){
   return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
-  .then(
+/*  .then(
     enc => Buffer.from(new Uint8Array(enc)).toString('base64'),
     err => {
       console.error(err);
       console.log('Failed Encrypting "functions.encrypt"');
       throw err;
   });
-}
+*/}
 
 export function login(keyprom){
  // genreq('GET','getkey',null)
