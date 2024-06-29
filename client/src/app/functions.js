@@ -51,7 +51,7 @@ export function getkey(){
   return genreq('GET','getkey',null)
   .then(
     key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
-    err => {generr('JSON Error: '+BACKEND+'getkey',err);}
+    err => {throw generr('JSON Error: '+BACKEND+'getkey',err);}
   )
 
 /*  let me = 'functions.getkey';
