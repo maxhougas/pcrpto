@@ -1,12 +1,12 @@
 import React from 'react';
 import styles from "./page.module.css";
 
-export function Wrapper({children,status}){
+export function Wrapper({children,ogrid,status}){
   return(
     <main key={-1} className={styles.main}>
       <div className={styles.description}>
-        <div key={-1} className={styles.whole}>
-          <text>{status}</text>
+        <div key={-1} style={{gridTemplate: ogrid}} className={styles.output}>
+          {status.map(el => <div key={el}>{el}</div>)}
         </div>
         {children}
       </div>
@@ -56,12 +56,10 @@ export function Lo({bc,req},id){
   );
 }
 
-export function Page({page,status}){
-  var children = page.map((e,i)=>e.type(e.props,2*i));
-
+export function Page({page,ogrid,status}){
   return (
-    <Wrapper status={status}>
-      {children}
+    <Wrapper status={status} ogrid={ogrid}>
+      {page.map((e,i)=>e.type(e.props,2*i))}
     </Wrapper>
   );
 }

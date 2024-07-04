@@ -213,7 +213,7 @@ app.get("/getkey", (req, res) => {
 }); 
 
 app.post("/login", (req,res) => {
-  console.log('Login attempt'+req.ip);
+  console.log('Login attempt '+req.ip);
 
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
@@ -267,6 +267,7 @@ app.post("/reset",(req,res)=>{
     ips=[];
     sqs=[];
     iks=[];
+    console.log('All registrations purged')
     res.json({s:0});
   }else{
     console.error('Check phrase mismatch @ /reset');
@@ -274,19 +275,27 @@ app.post("/reset",(req,res)=>{
   }
 });
 
-app.post("/lemp",(req,res)=>{
+app.get("/lemp",(req,res)=>{
   console.log('List employees request from '+req.ip);
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  qandres(res,i,'select users from mysql.users');
+  qandres(res,i,'select user from mysql.user');
+})
 
-/*  sqs[i].query('select user from mysql.user;')
-  .then(
-    sql => res.json(mysql),
-    err => {;}
-  );
-*/
+app.post("/cuser",(req,res)=>{
+  console.log('Create user request from '+req.ip);
+  let newuser = sanitize(req.body.nuname);
+
+  qandres(res,i,"GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+newuser+"@'%' IDENTIFIED BY 'default'");
+})
+
+app.get("/allreqs",(req,res)=>{
+  console.log('List pto reqeusts request from '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+
+  qandres(res,i,'select * from pcr.pto');
 })
 
 console.log('Production routes registered');

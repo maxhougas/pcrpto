@@ -9,7 +9,7 @@ import * as fun from "./functions.js";
 
 export default function Home(){
 
-  const SCHECK = 'Start';
+  const SCHECK = ['Start'];
   const [status,setstatus] = React.useState(SCHECK);
 
 /***
@@ -20,14 +20,16 @@ export default function Home(){
     fetch('http://localhost:5000/pair')
   }
 
-  function switchpage(s,p){
-    if(s){setstatus(s);}
+  function switchpage(s,g,p){
+    if(s){setstatus(Array.isArray(s)?s:[s]);}
+    if(g){setogrid(g);}
     if(p){setpage(p);}
+  
   }
 
   function genbhandle(eve){
     let props = JSON.parse(eve.target.getAttribute('req'));
-    setstatus(props.status);
+    switchpage(props.status,null,null);
 
     if(props.cb){
       eval(props.cb+'(fun.genreq(props.m,props.u,props.b)').then(
@@ -37,27 +39,27 @@ export default function Home(){
     else{
       fun.genreq(props.m,props.u,props.b).then(
         suc => switchpage(props.nstatus,eval(props.npage)),
-        err => {setstatus(props.fstatus);generr(props.fstatus,err);}
+        err => {switchpage(props.fstatus,null,null);fun.generr(props.fstatus,err);}
       );
     }
   }
 
   function cback(){
-    setstatus('Checking...');
+    switchpage('Checking...',G1BY1,null);
     fun.genreq('POST','echo',{echo:'echo'})
     .then(
-      jso=>switchpage(SWILLK,PLOGIN),
-      err=>{setstatus('Back End Not Found');generr('JSON Error: '+fun.BACKEND+'echo',err);}
+      jso=>switchpage(SWILLK,G1BY1,PLOGIN),
+      err=>{switchpage('Back End Not Found',null,null);fun.generr('JSON Error: '+fun.BACKEND+'echo',err);}
     )
   }
 
-  function logout(){ //must rfactor
-    setstatus(SLOGOUT);
+  function logout(){ //must refactor... might be fine
+    switchpage(SLOGOUT,G1BY1,null);
 
     fun.genreq('GET','logout',null)
     .then(
-      jso => switchpage(SWILLK,PLOGIN),
-      err => {setstatus('Logout Failed');generr('JSON Error: '+fun.BACKEND+'logout',err);}
+      jso => switchpage(SWILLK,G1BY1,PLOGIN),
+      err => {switchpage('Logout Failed',G1BY1,null);fun.generr('JSON Error: '+fun.BACKEND+'logout',err);}
     );
   }
 
@@ -68,10 +70,10 @@ export default function Home(){
     return fun.getkey()
     .then(
       key => fun.encrypt(key,pass),
-      err => {throw generr('Failed to Import Key',err);}
+      err => {throw fun.generr('Failed to Import Key',err);}
     ).then(
       enc => fun.genreq('POST','login',{uname:uname,pass:Buffer.from(enc).toString('Base64')}),
-      err => {generr('Failed to encrypt',err);}
+      err => {fun.generr('Failed to encrypt',err);}
     );
   }
 
@@ -81,17 +83,29 @@ export default function Home(){
   function loginboss(){
     login()
     .then(
-      jso => switchpage(SBOSS,PBOSS),
-      err => {setstatus(SLOGINF);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
+      jso => switchpage(SBOSS,null,PBOSS),
+      err => {switchpage(SLOGINF,null,null);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
     );
   }  
 
   function lemp(){
-    genreq('GET','lemp',null)
+    let url = 'lemp';
+    switchpage('Retrieving Data...',G1BY1,null);
+
+    function mklist(usrs){
+      let stat = 
+        usrs.map(e => e.User)
+        .filter(e => e && e !== '' && e !== 'PUBLIC' && e !== 'mariadb.sys' && e !== 'mysql' && e !== 'root');
+      return stat;
+    }
+
+    fun.genreq('GET',url,null)
     .then(
-      jso => setstatus(jso),
-      err => {generr('JSON Error: '+fun.BACKEND+'lemp',err);}
-    )
+      jso => switchpage(mklist(jso[0]),G1BY2,PEMPMAN),
+      err => {
+        switchpage('Get Users Failed',null,null);
+        fun.generr('JSON Error: '+fun.BACKEND+url,err);
+    });
   }
 
   function spreq(){
@@ -107,18 +121,53 @@ export default function Home(){
   }
 
   function cuser(){
+    let url = 'cuser';
+    switchpage ('Creating User...',G1BY1,null);
+
+    console.log(document.getElementById('si0').value);
+//    genreq('POST','cuser',{nuname:document.getElementById('si1').value})
+//    .then(
+//      jso => switchpage('User Created',null,null),
+//      err => {
+//        switchpage('Create user failed',null,null);
+//        generr('JSON Error '+fun.BACKEND+url,err);
+//    })
   }
 
   function duser(){
+  }
+
+  function toadmin(){
+    switchpage(SBOSS,G1BY1,PBOSS);
   }
 
   function denyp(){
   }
 
   function termconns(){
+    let url='reset';
+    switchpage('Terminating...',G1BY1,null);
+
+    fun.genreq('POST',url,{checkphrase:'reset'})
+    .then(
+      jso => switchpage('Conns Reset',G1BY1,PLOGIN),
+      err => {
+        switchpage('Reset Failed',G1BY1,null);
+        fun.generr('JSON Error: '+fun.BACKEND+url,err);
+    });
   }
 
   function vallreqs(){
+    let url = 'allreqs';
+    switchpage('Getting Requests...',G1BY1,null);
+
+    fun.genreq('GET',url,null)
+    .then(
+      jso => switchpage(JSON.stringify(jso[0]),G1BY1,null),
+      err => {
+        switchpage('Get Requests Failed',G1BY1,null);
+        generr('JSON Error '+fun.BACKEND+url,err);
+    });
   }
 
 /***
@@ -171,27 +220,44 @@ export default function Home(){
   ];
 
   const PBOSS = [
+    {
+      type:Bb,props:{
+        key:1,
+        bc:[lemp,vallreqs],
+        bl:['List Employees','List Requests'],
+    }},{
+      type:Bb,props:{
+        key:2,
+        bc:[termconns,logout],
+        bl:['Terminate Connections','Log Out']}}
+  ];
+
+  const PEMPMAN = [
     {type:Si,props:{key:0,p:false,text:'Employee ID'}},
     {
       type:Bb,props:{
         key:1,
-        bc:[lemp,duser],
-        bl:['List Employees','Delete Employee'],
+        bc:[lemp,cuser],
+        bl:['List Users','Create User']
     }},{
       type:Bb,props:{
         key:2,
-        bc:[vallreqs,termconns],
-        bl:['View All Requests','Terminate Connections']}},
+        bc:[duser,toadmin],
+        bl:['Delete User','Back'],
+    }},
     BLOGOUT
   ];
 
-  const SNOCON = 'No Connection';
-  const SWILLK = 'Willkommen';
-  const SLOGIN = 'Logging In';
-  const SLOGOUT = 'Logging Out';
-  const SEMP = 'Employee Mode';
-  const SBOSS = 'Admin Mode';
-  const SLOGINF = 'Login Failed';
+  const SNOCON = ['No Connection'];
+  const SWILLK = ['Willkommen'];
+  const SLOGIN = ['Logging In...'];
+  const SLOGOUT = ['Logging Out...'];
+  const SEMP = ['Employee Mode'];
+  const SBOSS = ['Admin Mode'];
+  const SLOGINF = ['Login Failed'];
+
+  const G1BY1 = '1fr / 1fr';
+  const G1BY2 = '1fr / 1fr 1fr';
 
 /***
  E002 END PAGE DEFS
@@ -199,6 +265,7 @@ export default function Home(){
  ***/
 
   const [page,setpage] = React.useState(PCONTEST);
+  const [ogrid,setogrid] = React.useState(G1BY1);
   
-  return (<comps.Page page={page} status={status} />);
+  return (<comps.Page page={page} ogrid={ogrid} status={status} />);
 }

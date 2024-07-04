@@ -37,12 +37,14 @@
   border-radius: var(--border-radius);
 }
 
-.whole text {
+.output {
+  display: grid;
+}
+
+.output div {
   display: flex;
   width: 100%;
-/*  align-items: center;*/
   justify-content: center;
-/*  align-text: center;*/
   padding: 1rem;
   background-color: rgba(var(--callout-rgb), 0.9);
   border: 1px solid rgba(var(--callout-border-rgb), 0.3);
