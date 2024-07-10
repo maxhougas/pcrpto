@@ -236,12 +236,12 @@ app.post("/login", (req,res) => {
       throw err;
   })
   .then(
-    sqlr => res.json(sqlr[0]),
+    sqlr => res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),//sqlr[0]),
     err => {
       console.error(err);
       console.log('Sql Failed--probably credentials rejected @ /login');
       purger(i);
-      res.send(''); //Generate COPS error
+      res.send(''); //Generate CORS error
   });
 });
 
@@ -280,15 +280,31 @@ app.get("/lemp",(req,res)=>{
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  qandres(res,i,'select user from mysql.user');
+  qandres(res,i,"select user from mysql.user where user NOT IN ('','mysql','PUBLIC','mariadb.sys','root')");
 })
 
 app.post("/cuser",(req,res)=>{
   console.log('Create user request from '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+
   let newuser = sanitize(req.body.nuname);
 
   qandres(res,i,"GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+newuser+"@'%' IDENTIFIED BY 'default'");
 })
+
+app.post("/duser",(req,res)=>{
+  console.log('Delete user request from '+req.ip);
+  let duser = sanitize(req.body.uname);
+
+  if(duser === 'ptoboss'){
+    console.error('Attempt to delete admin user blocked');
+    res.send('');
+  }else{
+    let i = ips.indexOf(req.ip);
+    checkindex(res,i); //error if ip not found
+    qandres(res,i,"DROP USER IF EXISTS "+duser);
+}})
 
 app.get("/allreqs",(req,res)=>{
   console.log('List pto reqeusts request from '+req.ip);

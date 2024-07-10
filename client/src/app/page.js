@@ -78,12 +78,23 @@ export default function Home(){
   }
 
   function loginemp(){
+    switchpage('Logging In...',G1BY1,null);
+
+    login()
+    .then(
+      jso => switchpage('Employee Mode',null,PEMP),
+      err => {
+        switchpage('Login Failed',null,null);
+        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
+    });
   }
 
   function loginboss(){
+    switchpage('Logging In...',G1BY1,null);
+
     login()
     .then(
-      jso => switchpage(SBOSS,null,PBOSS),
+      jso => switchpage(jso.mode === 'admin' ? SBOSS : 'Bad User Name' ,null,jso.mode ==='admin' ? PBOSS : null),
       err => {switchpage(SLOGINF,null,null);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
     );
   }  
@@ -94,8 +105,8 @@ export default function Home(){
 
     function mklist(usrs){
       let stat = 
-        usrs.map(e => e.User)
-        .filter(e => e && e !== '' && e !== 'PUBLIC' && e !== 'mariadb.sys' && e !== 'mysql' && e !== 'root');
+        usrs.map(e => e.User);
+//        .filter(e => e && e !== '' && e !== 'PUBLIC' && e !== 'mariadb.sys' && e !== 'mysql' && e !== 'root');
       return stat;
     }
 
@@ -124,17 +135,29 @@ export default function Home(){
     let url = 'cuser';
     switchpage ('Creating User...',G1BY1,null);
 
-    console.log(document.getElementById('si0').value);
-//    genreq('POST','cuser',{nuname:document.getElementById('si1').value})
-//    .then(
-//      jso => switchpage('User Created',null,null),
-//      err => {
-//        switchpage('Create user failed',null,null);
-//        generr('JSON Error '+fun.BACKEND+url,err);
-//    })
+    fun.genreq('POST','cuser',{nuname:document.getElementById('si0').value})
+    .then(
+      jso => switchpage('User Created',null,null),
+      err => {
+        switchpage('Create user failed',null,null);
+        fun.generr('JSON Error '+fun.BACKEND+url,err);
+    })
   }
 
   function duser(){
+    if(document.getElementById('si0').value === 'ptoboss'){
+      switchpage('DUMM IDEE!',G1BY1,null);
+      console.error('Attempted to delete admin user');
+    }else{
+      let url = 'duser';
+      switchpage('Deleting User...',G1BY1,null);
+      fun.genreq('POST',url,{uname:document.getElementById('si0').value})
+      .then(
+        jso => switchpage('User Deleted',null,null),
+        err => {
+          switchpage('Delete User Failed',null,null);
+          fun.generr('JSON Error: '+fun.BACKEND+url,err);
+    })}
   }
 
   function toadmin(){
@@ -203,7 +226,7 @@ export default function Home(){
       type:Bb,
       props:{
         key:1,
-        bc:[loginboss,testpair],
+        bc:[loginboss,loginemp],
         bl:['Admin Log In','Employee Log In'],
     }},
     BLOGOUT
