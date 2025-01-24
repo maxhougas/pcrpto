@@ -81,7 +81,7 @@ console.log('Debug routes registered');
  S003 START SQL CONSTANTS
  ***/
 
-const DEFGATE = execSync("/srv/server/ip.sh").toString().slice(0,-1);
+const DEFGATE = execSync("/home/user/pcrpto/server/ip.sh").toString().slice(0,-1);
 
 const SQL_PROT = {
   host: DEFGATE,
