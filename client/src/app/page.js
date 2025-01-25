@@ -24,7 +24,6 @@ export default function Home(){
     if(s){setstatus(Array.isArray(s)?s:[s]);}
     if(g){setogrid(g);}
     if(p){setpage(p);}
-  
   }
 
   function genbhandle(eve){

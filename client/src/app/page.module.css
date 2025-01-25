@@ -52,6 +52,18 @@
   font-size: 24px;
 }
 
+.inputs {
+ display: grid;
+}
+
+.inputs input {
+  font-size: 24px;
+  border-radius: var(--border-radius);
+  background-color: rgba(var(--callout-rgb), 0.9);
+  border: solid rgba(var(--callout-border-rgb), 1.0);
+  padding: 1rem;
+}
+
 .description input {
   font-size: 24px;
   border-radius: var(--border-radius);

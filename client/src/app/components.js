@@ -14,6 +14,43 @@ export function Wrapper({children,ogrid,status}){
   );
 }
 
+function Status({ogrid,status}){
+  let s = Array.isArray(status)?status:[status];
+  return(
+    <div key={0} id='status' style={{gridTemplate: ogrid}} className={styles.output}>
+      {s.map((e,i) => <div key={e} id={'s'+i}>{e}</div>)}
+    </div>
+  );
+}
+
+function Inputs({ogrid,isp,itext}){
+  let p = Array.isArray(isp)?isp:[isp];
+  let t = Array.isArray(itext)?itext:[itext];
+  return(
+    <div key={1} id='inputs' style={{gridTemplate: ogrid}} className={styles.inputs}>
+      {t.map((e,i) => <input type={p[i]?password:text} placeholder={t} key={e} id={'i'+i} tabIndex={i+1}/>);}
+    </div>
+  );
+}
+
+function Buttons({ogrid,btext,handler,tabs})
+{
+  let t = Array.isArray(btext)?btext:[btext];
+  let h = Array.isArray(handler)?handler:[handler];
+  return(
+    <div key={2} id='buttons' style={{gridTemplate: ogrid}} classname={styles.buttons}>
+      {t.map((e,i) => <button onClick={h[i]} key={e} id={'b'+i} tabIndex={tabs+i}>{e}</button>);}
+    </div>
+  );
+}
+
+export function Wilkommen(){
+  return(
+    <Wrapper ogrid={'1fr'} className={styles.output}>
+    </Wrapper>
+  );
+}
+
 export function Si({key,p,text},id){
   return(
     <div key={key} className={styles.whole}>
