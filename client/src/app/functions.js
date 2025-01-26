@@ -79,17 +79,9 @@ export function processkey(k){
 
 export function encrypt(k,pass){
   return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
-/*  .then(
-    enc => Buffer.from(new Uint8Array(enc)).toString('base64'),
-    err => {
-      console.error(err);
-      console.log('Failed Encrypting "functions.encrypt"');
-      throw err;
-  });
-*/}
+}
 
 export function login(keyprom){
- // genreq('GET','getkey',null)
   return keyprom.then(
     jso => processkey(Uint8Array.from(Buffer.from(jso,'Base64'))),
     err => {throw fun.generr('JSON Error in functions.login: '+BACKEND+'getkey',err);}
@@ -99,10 +91,7 @@ export function login(keyprom){
   ).then(
     enc => fun.genreq('POST','login',{uname:document.getElementById('ii0').value,pass:enc}),
     err => {throw fun.generr('Failed to encrypt in');}
-  );/*.then(
-    jso => switchpage(SBOSS,PBOSS),
-    err => {setstatus(SLOGINF);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
-  );*/
+  );
 }
 
 /***	

@@ -8,10 +8,10 @@
 }
 
 .description {
-  width: 30vw;
-  flex-direction: row;
-/*  display: inherit;
-*/  justify-content: inherit;
+  width: 1080px;
+  flex-direction: column;
+  display: grid;
+  justify-content: inherit;
   align-items: inherit;
   font-size: 0.85rem;
   max-width: var(--max-width);
@@ -58,6 +58,7 @@
 
 .inputs input {
   font-size: 24px;
+  width: 100%;
   border-radius: var(--border-radius);
   background-color: rgba(var(--callout-rgb), 0.9);
   border: solid rgba(var(--callout-border-rgb), 1.0);
@@ -78,6 +79,17 @@
 
 .whole input {
   width: 100%;
+}
+
+.buttons {
+  display: grid;
+}
+
+.buttons button {
+  width: 100%;
+  font-size: 24px;
+  border-radius: var(--border-radius);
+  padding: 1rem;
 }
 
 .description button {

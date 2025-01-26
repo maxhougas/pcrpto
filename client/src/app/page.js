@@ -9,8 +9,16 @@ import * as fun from "./functions.js";
 
 export default function Home(){
 
+  const G1BY1 = '1fr / 1fr';
+  const G1BY2 = '1fr / 1fr 1fr';
+  const G2BY2 = '1fr 1fr / 1fr 1fr';
+
   const SCHECK = ['Start'];
   const [status,setstatus] = React.useState(SCHECK);
+
+  const [sprops,setsprops] = React.useState({grid:G1BY1,status:['Start']});
+  const [iprops,setiprops] = React.useState(null);
+  const [bprops,setbprops] = React.useState({grid:G1BY1,handler:[cback],btxt:['Check Connection']})
 
 /***
  S001 START PAGE FUNCTIONS
@@ -18,6 +26,16 @@ export default function Home(){
 
   function testpair(){
     fetch('http://localhost:5000/pair')
+  }
+
+  function s(grid,status){
+    return ({grid:grid,status:status});
+  }
+  function i(grid,isp,itxt){
+    return({grid:grid,isp:isp,itxt:itxt});
+  }
+  function b(grid,handler,btxt){
+    return({grid:grid,handler:handler,btxt:btxt});
   }
 
   function switchpage(s,g,p){
@@ -44,27 +62,41 @@ export default function Home(){
   }
 
   function cback(){
-    switchpage('Checking...',G1BY1,null);
+    setsprops(s(G1BY1,'Checking...'));
     fun.genreq('POST','echo',{echo:'echo'})
     .then(
-      jso=>switchpage(SWILLK,G1BY1,PLOGIN),
-      err=>{switchpage('Back End Not Found',null,null);fun.generr('JSON Error: '+fun.BACKEND+'echo',err);}
+      jso=>{
+        setsprops(s(G1BY1,'Willkommen'));
+        setiprops(i(G1BY2,[false,true],['Username','Password']));
+        setbprops(b(G1BY2,[loginemp,loginboss],['Employee Login','Admin Login']));
+      },
+      err=>{
+        setsprops(s(G1BY1,'Back End Not Found'));
+        fun.generr('JSON Error: '+fun.BACKEND+'echo',err);
+      }
     )
   }
 
   function logout(){ //must refactor... might be fine
-    switchpage(SLOGOUT,G1BY1,null);
+    setsprops(s(G1BY1,['Logging Out...']));
 
     fun.genreq('GET','logout',null)
     .then(
-      jso => switchpage(SWILLK,G1BY1,PLOGIN),
-      err => {switchpage('Logout Failed',G1BY1,null);fun.generr('JSON Error: '+fun.BACKEND+'logout',err);}
+      jso => {
+        setsprops(s(G1BY1,['Willkommen']));
+        setiprops(i(G1BY2,[false,true],['Username','Password']));
+        setbprops(b(G1BY2,[loginemp,loginboss],['Employee Login','Admin Login']));
+      },
+      err => {
+        setsprops(s(G1BY1,['Logout Failed']));
+        fun.generr('JSON Error: '+fun.BACKEND+'logout',err);
+      }
     );
   }
 
   function login(){
-    let uname = document.getElementById('ii0').value;
-    let pass = document.getElementById('ii1').value;
+    let uname = document.getElementById('i0').value;
+    let pass = document.getElementById('i1').value;
 
     return fun.getkey()
     .then(
@@ -77,25 +109,33 @@ export default function Home(){
   }
 
   function loginemp(){
-    switchpage('Logging In...',G1BY1,null);
+    setsprops(s(G1BY1,['Logging In...']));
 
     login()
     .then(
       jso => switchpage('Employee Mode',null,PEMP),
       err => {
-        switchpage('Login Failed',null,null);
+        setsprops(s(G1BY1,['Login Failed']));
         fun.generr('JSON Error: '+fun.BACKEND+'login',err);
     });
   }
 
   function loginboss(){
-    switchpage('Logging In...',G1BY1,null);
+    setsprops(s(G1BY1,['Logging In...']));
 
-    login()
-    .then(
-      jso => switchpage(jso.mode === 'admin' ? SBOSS : 'Bad User Name' ,null,jso.mode ==='admin' ? PBOSS : null),
-      err => {switchpage(SLOGINF,null,null);fun.generr('JSON Error: '+fun.BACKEND+'login',err);}
-    );
+    login().then(
+      jso => {
+        if(jso.mode === 'admin') {
+          setsprops(s(G1BY1,['Admin Mode']));
+          setiprops(null);
+          setbprops(b(G1BY2,[lemp,vallreqs,termconns,logout],['List Employees','View Requests','Terminate Connections','Log Out']));
+        }
+        else {setsprops(s(G1BY1,['Bad Username']));}
+      },
+      err => {
+        setsprops(s(G1BY1,['Login Failed']));
+        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
+     });
   }  
 
   function lemp(){
@@ -278,16 +318,12 @@ export default function Home(){
   const SBOSS = ['Admin Mode'];
   const SLOGINF = ['Login Failed'];
 
-  const G1BY1 = '1fr / 1fr';
-  const G1BY2 = '1fr / 1fr 1fr';
-
 /***
  E002 END PAGE DEFS
  S003 START RENDER
  ***/
-
   const [page,setpage] = React.useState(PCONTEST);
   const [ogrid,setogrid] = React.useState(G1BY1);
   
-  return (<comps.Page page={page} ogrid={ogrid} status={status} />);
+  return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
 }
