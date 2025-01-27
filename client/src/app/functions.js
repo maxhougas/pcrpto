@@ -25,46 +25,11 @@ export function genreq(m,u,b){
   );
 }
 
-export function getu(u){
-  return fetch(u)
-  .then(
-    res => res.json(),
-    err => {
-      console.error(err);
-      console.log('Failed GET on '+u);
-      throw err;
-  });
-}
-
-export function postu(u,b){
-  return fetch(u,phead(b))
-  .then(
-    res => res.json(),
-    err => {
-      console.error(err);
-      console.log('Failed POST on '+u);
-      throw err;
-  });
-}
-
 export function getkey(){
-  return genreq('GET','getkey',null)
-  .then(
+  return genreq('GET','getkey',null).then(
     key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
     err => {throw generr('JSON Error: '+BACKEND+'getkey',err);}
   )
-
-/*  let me = 'functions.getkey';
-
-  return getu('http://localhost:5000/getkey')
-  .then(
-    key => processkey(Uint8Array.from(Buffer.from(key,'base64'))),
-    err => {
-      console.error(err);
-      console.log('Failed to Retrieve Key');
-      throw err;
-  });
-*/
 }
 
 export function processkey(k){
@@ -99,26 +64,11 @@ export function login(keyprom){
  S002 START ERROR FUNCTIONS
  ***/
 
-export function ftcerr(calling,err){
-  let E = 'Failed to Connect';
-  console.error(err);
-  console.log(E+' '+calling);
-  return E;
-}
-
-export function jsonerr(calling,err){
-  let E = 'JSON failed';
-  console.error(err);
-  console.log(E+' '+calling);
-  return E;
-}
-
 export function generr(m,err){
   console.log(m);
   console.error(err);
   return err;
 }
-
 
 /***
  E002 END ERROR FUNCTIONS

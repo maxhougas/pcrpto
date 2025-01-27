@@ -13,9 +13,6 @@ export default function Home(){
   const G1BY2 = '1fr / 1fr 1fr';
   const G2BY2 = '1fr 1fr / 1fr 1fr';
 
-  const SCHECK = ['Start'];
-  const [status,setstatus] = React.useState(SCHECK);
-
   const [sprops,setsprops] = React.useState({grid:G1BY1,status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:G1BY1,handler:[cback],btxt:['Check Connection']})
@@ -38,38 +35,18 @@ export default function Home(){
     return({grid:grid,handler:handler,btxt:btxt});
   }
 
-  function switchpage(s,g,p){
-    if(s){setstatus(Array.isArray(s)?s:[s]);}
-    if(g){setogrid(g);}
-    if(p){setpage(p);}
-  }
-
-  function genbhandle(eve){
-    let props = JSON.parse(eve.target.getAttribute('req'));
-    switchpage(props.status,null,null);
-
-    if(props.cb){
-      eval(props.cb+'(fun.genreq(props.m,props.u,props.b)').then(
-      
-      );
-    }
-    else{
-      fun.genreq(props.m,props.u,props.b).then(
-        suc => switchpage(props.nstatus,eval(props.npage)),
-        err => {switchpage(props.fstatus,null,null);fun.generr(props.fstatus,err);}
-      );
-    }
+  function loginpage()
+  {
+    setsprops({grid:G1BY1,status:['Willkommen']});
+    setiprops({grid:G1BY2,isp:[false,true],itxt:['Username','Password']});
+    setbprops({grid:G1BY2,handler:[loginemp,loginboss],btxt:['Employee Log In','Admin Log In']});
   }
 
   function cback(){
     setsprops(s(G1BY1,'Checking...'));
     fun.genreq('POST','echo',{echo:'echo'})
     .then(
-      jso=>{
-        setsprops(s(G1BY1,'Willkommen'));
-        setiprops(i(G1BY2,[false,true],['Username','Password']));
-        setbprops(b(G1BY2,[loginemp,loginboss],['Employee Login','Admin Login']));
-      },
+      jso=> loginpage(),
       err=>{
         setsprops(s(G1BY1,'Back End Not Found'));
         fun.generr('JSON Error: '+fun.BACKEND+'echo',err);
@@ -80,13 +57,8 @@ export default function Home(){
   function logout(){ //must refactor... might be fine
     setsprops(s(G1BY1,['Logging Out...']));
 
-    fun.genreq('GET','logout',null)
-    .then(
-      jso => {
-        setsprops(s(G1BY1,['Willkommen']));
-        setiprops(i(G1BY2,[false,true],['Username','Password']));
-        setbprops(b(G1BY2,[loginemp,loginboss],['Employee Login','Admin Login']));
-      },
+    fun.genreq('GET','logout',null).then(
+      jso => loginpage(),
       err => {
         setsprops(s(G1BY1,['Logout Failed']));
         fun.generr('JSON Error: '+fun.BACKEND+'logout',err);
@@ -98,22 +70,24 @@ export default function Home(){
     let uname = document.getElementById('i0').value;
     let pass = document.getElementById('i1').value;
 
-    return fun.getkey()
-    .then(
+    return fun.getkey().then(
       key => fun.encrypt(key,pass),
-      err => {throw fun.generr('Failed to Import Key',err);}
+      err => fun.generr('Failed to Import Key',err)
     ).then(
       enc => fun.genreq('POST','login',{uname:uname,pass:Buffer.from(enc).toString('Base64')}),
-      err => {fun.generr('Failed to encrypt',err);}
+      err => fun.generr('Failed to encrypt',err)
     );
   }
 
   function loginemp(){
     setsprops(s(G1BY1,['Logging In...']));
 
-    login()
-    .then(
-      jso => switchpage('Employee Mode',null,PEMP),
+    login().then(
+      jso => {
+        setsprops(s(G1BY1,['Employee Mode']));
+        setiprops(s(G1BY2,[false,false,false],['Start Date','End Date','Request ID']));
+        setbprops(b(G1BY2,[spreq,rpreq,vpreq,cpass,logout],['Submit Request','Revoke Request','View Requests','Change Password','Log Out']));
+      },
       err => {
         setsprops(s(G1BY1,['Login Failed']));
         fun.generr('JSON Error: '+fun.BACKEND+'login',err);
@@ -140,20 +114,16 @@ export default function Home(){
 
   function lemp(){
     let url = 'lemp';
-    switchpage('Retrieving Data...',G1BY1,null);
+    setsprops(s(G1BY1,['Retrieving Data...']));
 
     function mklist(usrs){
-      let stat = 
-        usrs.map(e => e.User);
-//        .filter(e => e && e !== '' && e !== 'PUBLIC' && e !== 'mariadb.sys' && e !== 'mysql' && e !== 'root');
-      return stat;
+      return usrs.map(e => e.User);
     }
 
-    fun.genreq('GET',url,null)
-    .then(
-      jso => switchpage(mklist(jso[0]),G1BY2,PEMPMAN),
+    fun.genreq('GET',url,null).then(
+      jso => setsprops(s(G1BY2,mklist(jso[0]))),
       err => {
-        switchpage('Get Users Failed',null,null);
+        setsprops(s(G1BY1,['Get Users Failed']));
         fun.generr('JSON Error: '+fun.BACKEND+url,err);
     });
   }
@@ -172,35 +142,32 @@ export default function Home(){
 
   function cuser(){
     let url = 'cuser';
-    switchpage ('Creating User...',G1BY1,null);
+    setsprops(s(G1BY1,['Creating User...']));
 
-    fun.genreq('POST','cuser',{nuname:document.getElementById('si0').value})
-    .then(
-      jso => switchpage('User Created',null,null),
+    fun.genreq('POST','cuser',{nuname:document.getElementById('i0').value}).then(
+      jso => setsprops(s(G1BY1,['User Created'])),
       err => {
-        switchpage('Create user failed',null,null);
+        setsprops(s(G1BY1,['Create User Failed']));
         fun.generr('JSON Error '+fun.BACKEND+url,err);
-    })
+    });
   }
 
   function duser(){
-    if(document.getElementById('si0').value === 'ptoboss'){
-      switchpage('DUMM IDEE!',G1BY1,null);
-      console.error('Attempted to delete admin user');
+    if(document.getElementById('i0').value === 'ptoboss'){
+      setsprops(s(G1BY1,['DUMM IDEE!']));
+      console.error('Attempted to delete admin');
     }else{
       let url = 'duser';
-      switchpage('Deleting User...',G1BY1,null);
-      fun.genreq('POST',url,{uname:document.getElementById('si0').value})
-      .then(
-        jso => switchpage('User Deleted',null,null),
+      setsprops(s(G1BY1,'Deleting User...'));
+      fun.genreq('POST',url,{uname:document.getElementById('si0').value}).then(
+        jso => setsprops(s(G1BY1,['User Deleted'])),
         err => {
-          switchpage('Delete User Failed',null,null);
+          setsprops(s(G1BY1,['Delete User Failed']));
           fun.generr('JSON Error: '+fun.BACKEND+url,err);
     })}
   }
 
   function toadmin(){
-    switchpage(SBOSS,G1BY1,PBOSS);
   }
 
   function denyp(){
@@ -208,26 +175,24 @@ export default function Home(){
 
   function termconns(){
     let url='reset';
-    switchpage('Terminating...',G1BY1,null);
+    setsprops(s(G1BY1,['Terminating...']));
 
-    fun.genreq('POST',url,{checkphrase:'reset'})
-    .then(
-      jso => switchpage('Conns Reset',G1BY1,PLOGIN),
+    fun.genreq('POST',url,{checkphrase:'reset'}).then(
+      jso => loginpage(),
       err => {
-        switchpage('Reset Failed',G1BY1,null);
+        setsprops(s(G1BY1,['Reset Failed']));
         fun.generr('JSON Error: '+fun.BACKEND+url,err);
     });
   }
 
   function vallreqs(){
     let url = 'allreqs';
-    switchpage('Getting Requests...',G1BY1,null);
+    setsprops(s(G1BY1,['Getting Requests...']));
 
-    fun.genreq('GET',url,null)
-    .then(
-      jso => switchpage(JSON.stringify(jso[0]),G1BY1,null),
+    fun.genreq('GET',url,null).then(
+      jso => setsprops(s(G1BY1,[JSON.stringify(jso[0])])),
       err => {
-        switchpage('Get Requests Failed',G1BY1,null);
+        setsprops(s(G1BY1,['Get Requests Failed']));
         generr('JSON Error '+fun.BACKEND+url,err);
     });
   }
@@ -237,93 +202,10 @@ export default function Home(){
  S002 START PAGE DEFS
  ***/
 
-  const BLOGOUT = {
-    type:Sb,
-    props:{
-      key:'logout',
-      bc:logout,
-      bl:'Log Out',
-  }};
-
-  const PCONTEST = [{
-    type:Sb,
-    props:{
-      key:0,
-      bc:cback,
-      bl:'Check Connection',
-    }
-  }];
-
-  const PLOGIN = [
-    {
-      type:Ii,
-      props:{
-        key:0,
-        p:[false,true],
-        text:['User Name','Password']
-    }},{
-      type:Bb,
-      props:{
-        key:1,
-        bc:[loginboss,loginemp],
-        bl:['Admin Log In','Employee Log In'],
-    }},
-    BLOGOUT
-  ];
-
-  const PEMP = [
-    {type:'Si',props:{key:0,p:false,text:'Request ID'}},
-    {type:'Ii',props:{
-      key:1,p:[false,false],text:['S: YYYY MM DD HH MM','E: YYYY MM DD HH MM']}},
-    {type:'Bb',props:{
-      key:2,bc:[spreq,rpreq],bl:['Submit PTO Request','Revoke PTO Request']}},
-    {type:'Bb',props:{key:3,bc:[vpreq,cpass],bl:['View PTO Requests','Change Password']}},
-    {type:'Sb',props:{key:4,bc:logout,bl:'Log Out'}}
-  ];
-
-  const PBOSS = [
-    {
-      type:Bb,props:{
-        key:1,
-        bc:[lemp,vallreqs],
-        bl:['List Employees','List Requests'],
-    }},{
-      type:Bb,props:{
-        key:2,
-        bc:[termconns,logout],
-        bl:['Terminate Connections','Log Out']}}
-  ];
-
-  const PEMPMAN = [
-    {type:Si,props:{key:0,p:false,text:'Employee ID'}},
-    {
-      type:Bb,props:{
-        key:1,
-        bc:[lemp,cuser],
-        bl:['List Users','Create User']
-    }},{
-      type:Bb,props:{
-        key:2,
-        bc:[duser,toadmin],
-        bl:['Delete User','Back'],
-    }},
-    BLOGOUT
-  ];
-
-  const SNOCON = ['No Connection'];
-  const SWILLK = ['Willkommen'];
-  const SLOGIN = ['Logging In...'];
-  const SLOGOUT = ['Logging Out...'];
-  const SEMP = ['Employee Mode'];
-  const SBOSS = ['Admin Mode'];
-  const SLOGINF = ['Login Failed'];
-
 /***
  E002 END PAGE DEFS
  S003 START RENDER
  ***/
-  const [page,setpage] = React.useState(PCONTEST);
-  const [ogrid,setogrid] = React.useState(G1BY1);
   
   return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
 }

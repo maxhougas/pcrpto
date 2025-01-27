@@ -280,7 +280,7 @@ app.get("/lemp",(req,res)=>{
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  qandres(res,i,"select user from mysql.user where user NOT IN ('','mysql','PUBLIC','mariadb.sys','root')");
+  qandres(res,i,"select user from mysql.user where user NOT IN ('maria','ptoboss','mariadb.sys','root')");
 })
 
 app.post("/cuser",(req,res)=>{
