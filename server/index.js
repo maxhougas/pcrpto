@@ -23,6 +23,7 @@ app.use((req,res,next) =>
 app.use(express.json());
 
 console.log('Non-route middleware configured');
+
 /***
  E001 END NON-ROUTE MIDDLEWARE
  S002 START DEBUG ROUTES
@@ -49,9 +50,8 @@ app.get("/pair", (req, res) => {
     modulusLength:2048,
     publicExponent:new Uint8Array([1,0,1]),
     hash:'SHA-256'
-  },true,['encrypt','decrypt'])
-  .then(
-    async kp=>{
+  },true,['encrypt','decrypt']).then(
+    async kp => {
       let uk = await crypto.subtle.exportKey('spki',kp.publicKey);
       let ik = await crypto.subtle.exportKey('pkcs8',kp.privateKey);
       let ke = [uk,ik];
@@ -68,14 +68,15 @@ app.get("/pair", (req, res) => {
       console.log(await Promise.resolve('cat'));
       res.json({s:0,keys:ke});
     },
-    e=>{
+    err => {
       console.log('Failed to generate key pair (/pair)');
-      console.error(e);
+      console.error(err);
       res.json({s:1});
   });
 });
 
 console.log('Debug routes registered');
+
 /***
  E002 END DEBUG ROUTES
  S003 START SQL CONSTANTS
@@ -106,6 +107,7 @@ let ips = [];
 let iks = [];
 
 console.log('SQL constants defined');
+
 /***
  E003 END SQL CONSTANTS
  S004 START HELPER FUNCTIONS
@@ -132,8 +134,7 @@ function mkeys(){
 }
 
 function exp(uk){
-  return crypto.subtle.exportKey('spki', uk)
-  .then(
+  return crypto.subtle.exportKey('spki', uk).then(
     key => Buffer.from(new Uint8Array(key)).toString('base64'),
     err => {
       console.error(err);
@@ -167,14 +168,14 @@ function checkip(req){
 }
 
 function qandres(res,i,q){
-  sqs[i].query(q)
-  .then(
+  sqs[i].query(q).then(
     sql => res.json(sql),
     err => {console.log('SQL Error: '+q);console.error(err);}
   );
 }
 
 console.log('Helper functions defined');
+
 /***
  E004 END HELPER FUNCTIONS
  S005 START PRODUCTION ROUTES
@@ -200,8 +201,8 @@ app.get("/getkey", (req, res) => {
   mkeys().then(
     kp => handlekp(i,kp),
     err => {
-      console.error(err);
       console.log('Failed to generate key pair "index.getkey"');
+      console.error(err);
       throw err;
   }).then(
     uk => res.json(uk),
@@ -217,29 +218,24 @@ app.post("/login", (req,res) => {
 
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
-//  console.log('Forging uname and pass');
-//  sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
 
   function mkpoolandq(pas){
     console.log('Forging uname and pass'+Buffer.from(pas).toString());
     sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
-//    sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
     return sqs[i].query('show tables;');
   }
 
-  dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64')))
-  .then(
-    pas => mkpoolandq(pas),//sqs[i].query('show tables;'),//gensqlpool(res,i,req.body.uname,pas),
+  dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
+    pas => mkpoolandq(pas),
     err => {
       console.error(err); 
       console.log('Failed to decrypt @ /login)');
       throw err;
-  })
-  .then(
-    sqlr => res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),//sqlr[0]),
+  }).then(
+    sqlr => res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
     err => {
-      console.error(err);
       console.log('Sql Failed--probably credentials rejected @ /login');
+      console.error(err);
       purger(i);
       res.send(''); //Generate CORS error
   });
@@ -315,6 +311,7 @@ app.get("/allreqs",(req,res)=>{
 })
 
 console.log('Production routes registered');
+
 /***
  E005 END PRODUCTION ROUTES
  ***/

@@ -6,12 +6,12 @@ export const BACKEND = 'http://localhost:5000/'
  ***/
 
 export function api(){
-  return fetch(`http://localhost:5000/api/kitty.cat`)
-    .then(res=>res.json())
-    .then(
-      j => {console.log('kitty');j;},
-      e => {throw e;console.log('API Echo Failed "reqs/api"');}
-    );
+  return fetch(`http://localhost:5000/api/kitty.cat`).then(
+    res => res.json()
+  ).then(
+    jso => {console.log('kitty');jso;},
+    err => {throw err;console.log('API Echo Failed "reqs/api"');console.error(err);}
+  );
 }
 
 export function genreq(m,u,b){
@@ -21,15 +21,15 @@ export function genreq(m,u,b){
     body: m === 'POST' ? JSON.stringify(b) : null
   }).then(
     res => res.json(),
-    err => {throw generr('Connection Failed: '+url,err);}
+    err => {throw generr('Connection Failed: '+u,err);}
   );
 }
 
 export function getkey(){
   return genreq('GET','getkey',null).then(
     key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
-    err => {throw generr('JSON Error: '+BACKEND+'getkey',err);}
-  )
+    err => generr('JSON Error: '+BACKEND+'getkey',err)
+  );
 }
 
 export function processkey(k){
@@ -46,16 +46,13 @@ export function encrypt(k,pass){
   return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
 }
 
-export function login(keyprom){
-  return keyprom.then(
-    jso => processkey(Uint8Array.from(Buffer.from(jso,'Base64'))),
-    err => {throw fun.generr('JSON Error in functions.login: '+BACKEND+'getkey',err);}
+export function login(uname,pass){
+  return getkey().then(
+    key => encrypt(key,pass),
+    err => generr('Failed to Import Key',err)
   ).then(
-    key => encrypt(key,document.getElementById('ii1').value),
-    err => {throw fun.generr('Failed to import public key');}
-  ).then(
-    enc => fun.genreq('POST','login',{uname:document.getElementById('ii0').value,pass:enc}),
-    err => {throw fun.generr('Failed to encrypt in');}
+    enc => genreq('POST','login',{uname:uname,pass:Buffer.from(enc).toString('Base64')}),
+    err => generr('Failed to encrypt',err)
   );
 }
 

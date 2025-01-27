@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import {Si,Ii,Bb,Sb} from "./components.js"
 import * as comps from "./components.js"
 import * as fun from "./functions.js";
 
@@ -18,7 +17,7 @@ export default function Home(){
   const [bprops,setbprops] = React.useState({grid:G1BY1,handler:[cback],btxt:['Check Connection']})
 
 /***
- S001 START PAGE FUNCTIONS
+ S001 START HELPER FUNCTIONS
  ***/
 
   function testpair(){
@@ -42,6 +41,11 @@ export default function Home(){
     setbprops({grid:G1BY2,handler:[loginemp,loginboss],btxt:['Employee Log In','Admin Log In']});
   }
 
+/***
+ E001 END HELPER FUNCTIONS
+ S002 START BUTTON FUNCTIONS
+ ***/
+
   function cback(){
     setsprops(s(G1BY1,'Checking...'));
     fun.genreq('POST','echo',{echo:'echo'})
@@ -54,7 +58,7 @@ export default function Home(){
     )
   }
 
-  function logout(){ //must refactor... might be fine
+  function logout(){
     setsprops(s(G1BY1,['Logging Out...']));
 
     fun.genreq('GET','logout',null).then(
@@ -66,43 +70,18 @@ export default function Home(){
     );
   }
 
-  function login(){
-    let uname = document.getElementById('i0').value;
-    let pass = document.getElementById('i1').value;
-
-    return fun.getkey().then(
-      key => fun.encrypt(key,pass),
-      err => fun.generr('Failed to Import Key',err)
-    ).then(
-      enc => fun.genreq('POST','login',{uname:uname,pass:Buffer.from(enc).toString('Base64')}),
-      err => fun.generr('Failed to encrypt',err)
-    );
-  }
-
-  function loginemp(){
-    setsprops(s(G1BY1,['Logging In...']));
-
-    login().then(
-      jso => {
-        setsprops(s(G1BY1,['Employee Mode']));
-        setiprops(s(G1BY2,[false,false,false],['Start Date','End Date','Request ID']));
-        setbprops(b(G1BY2,[spreq,rpreq,vpreq,cpass,logout],['Submit Request','Revoke Request','View Requests','Change Password','Log Out']));
-      },
-      err => {
-        setsprops(s(G1BY1,['Login Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
-    });
-  }
-
   function loginboss(){
     setsprops(s(G1BY1,['Logging In...']));
 
-    login().then(
+    fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
       jso => {
         if(jso.mode === 'admin') {
           setsprops(s(G1BY1,['Admin Mode']));
-          setiprops(null);
-          setbprops(b(G1BY2,[lemp,vallreqs,termconns,logout],['List Employees','View Requests','Terminate Connections','Log Out']));
+          setiprops(i(G1BY1,[false],['Ausweis']));
+          setbprops(b(G1BY2,
+            [lemp,            vallreqs,       cuser,        rpreq,           duser,        termconns,              logout],
+            ['List Employees','View Requests','Create User','Remove Request','Delete User','Terminate Connections','Log Out']
+          ));
         }
         else {setsprops(s(G1BY1,['Bad Username']));}
       },
@@ -159,7 +138,7 @@ export default function Home(){
     }else{
       let url = 'duser';
       setsprops(s(G1BY1,'Deleting User...'));
-      fun.genreq('POST',url,{uname:document.getElementById('si0').value}).then(
+      fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
         jso => setsprops(s(G1BY1,['User Deleted'])),
         err => {
           setsprops(s(G1BY1,['Delete User Failed']));
@@ -197,14 +176,23 @@ export default function Home(){
     });
   }
 
-/***
- E001 END PAGE FUNCTIONS
- S002 START PAGE DEFS
- ***/
+  function loginemp(){
+    setsprops(s(G1BY1,['Logging In...']));
+
+    fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
+      jso => {
+        setsprops(s(G1BY1,['Employee Mode']));
+        setiprops(s(G1BY2,[false,false,false],['Start Date','End Date','Request ID']));
+        setbprops(b(G1BY2,[spreq,rpreq,vpreq,cpass,logout],['Submit Request','Revoke Request','View Requests','Change Password','Log Out']));
+      },
+      err => {
+        setsprops(s(G1BY1,['Login Failed']));
+        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
+    });
+  }
 
 /***
- E002 END PAGE DEFS
- S003 START RENDER
+ E002 END BUTTON FUNCTIONS
  ***/
   
   return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
