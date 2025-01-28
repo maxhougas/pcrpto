@@ -14,6 +14,22 @@ export function api(){
   );
 }
 
+export function testpair(){
+  fetch('http://localhost:5000/pair')
+}
+
+export function gcols(n){
+  return 'repeat('+n+',1fr)';
+}
+
+export function stretch(g,n,i){
+  return i>=Math.floor(n/g)*g?'1 / '+(g+1):'auto';
+}
+
+export function fixtime(t){
+  return (t.slice(0,-7).replace(/[:-]/g,'').replace('T',' '));
+}
+
 export function genreq(m,u,b){
   return fetch(BACKEND+u,{
     method:m,

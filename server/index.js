@@ -170,8 +170,11 @@ function checkip(req){
 function qandres(res,i,q){
   sqs[i].query(q).then(
     sql => res.json(sql),
-    err => {console.log('SQL Error: '+q);console.error(err);}
-  );
+    err => {
+      res.send('');
+      console.log('SQL Error: '+q);
+      console.error(err);
+  });
 }
 
 console.log('Helper functions defined');
@@ -220,16 +223,16 @@ app.post("/login", (req,res) => {
   checkindex(res,i); //error if ip not found
 
   function mkpoolandq(pas){
-    console.log('Forging uname and pass'+Buffer.from(pas).toString());
-    sqs[i] = mysql.createPool(poolconf('ptoboss','bossman'));
+    //console.log('Forging uname and pass '+Buffer.from(pas).toString());
+    sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
     return sqs[i].query('show tables;');
   }
 
   dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
-    pas => mkpoolandq(pas),
+    pas => mkpoolandq(Buffer.from(pas)),
     err => {
-      console.error(err); 
       console.log('Failed to decrypt @ /login)');
+      console.error(err); 
       throw err;
   }).then(
     sqlr => res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
@@ -244,8 +247,8 @@ app.post("/login", (req,res) => {
 
 app.get("/logout", (req, res) => {
   console.log('Logout request '+req.ip);
-  let i = ips.indexOf(req.ip);
-  
+  let i = ips.indexOf(req.ip); 
+ 
   if(i > -1){
     purger(i);
     console.log('Log out completed.');
@@ -257,16 +260,18 @@ app.get("/logout", (req, res) => {
 });
 
 app.post("/reset",(req,res)=>{
-  console.log('Reset request from '+req.ip)
+  console.log('Reset request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i);
 
-  if(req.body.checkphrase === 'reset'){
+  if(sqs[i].pool.config.connectionConfig.user === 'ptoboss' && req.body.checkphrase === 'reset'){
     ips=[];
     sqs=[];
     iks=[];
     console.log('All registrations purged')
     res.json({s:0});
   }else{
-    console.error('Check phrase mismatch @ /reset');
+    console.error('Check phrase mismatch or nonadmin user @ /reset');
     res.send(''); //Trigger CORS error
   }
 });
@@ -302,89 +307,72 @@ app.post("/duser",(req,res)=>{
     qandres(res,i,"DROP USER IF EXISTS "+duser);
 }})
 
-app.get("/allreqs",(req,res)=>{
-  console.log('List pto reqeusts request from '+req.ip);
+app.get("/vreqs",(req,res)=>{
+  console.log('List pto requests: '+req.ip);
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  qandres(res,i,'select * from pcr.pto');
+  let where = (sqs[i].pool.config.connectionConfig.user === 'ptoboss')?'':"where empid = '"+sqs[i].pool.config.connectionConfig.user+"'"
+  qandres(res,i,'select * from pcr.pto '+where);
 })
 
+app.post("/spreq",(req,res)=>{
+  console.log('Submit pto request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+
+  let u = sqs[i].pool.config.connectionConfig.user;
+  let s = sanitize(req.body.start);
+  let e = sanitize(req.body.end);
+  if(u === 'ptoboss'){
+    console.error('Blocked ptoboss submission attempt');
+    res.send('');    
+  }else{
+    qandres(res,i,"insert into pto (empid,startdate,enddate) values ('"+u+"','"+s+"','"+e+"')")
+  }
+})
+
+app.post("/rpreq",(req,res)=>{
+  console.log('Delete pto request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i); //error if ip not found
+
+  let u = sqs[i].pool.config.connectionConfig.user;
+  let id = sanitize(req.body.id);
+
+  sqs[i].query("select empid from pto where id = "+id).then(
+    jso => { console.log(jso[0]);
+      if(jso[0][0] && (jso[0][0].empid === u || u === 'ptoboss')){
+        sqs[i].query("delete from pto where id = "+id).then(
+          jso => res.json(jso),
+          err => {
+            console.error(err);
+            res.send('');
+         });
+      }else{
+        console.error("User name does not match or request does not exist");
+        res.send('');
+    }},
+    err => {
+      console.error(err);
+      res.send('');
+  });
+});
+
+/*app.post("/preqs",(req,res)=>{
+  console.log('Purge request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i);
+
+  if(sqs[i].pool.config.connectionConfig.user === 'ptoboss' && req.body.checkphrase === 'PURGE'){
+    qandres(res,i,"truncate table pto");
+  }else
+    console.error('Blocked purge request');
+    res.send('');
+});
+*/
 console.log('Production routes registered');
 
 /***
  E005 END PRODUCTION ROUTES
  ***/
-
-/*app.get("/", (req, res) => {
-  res.sendFile("/srv/client/public/index.html");
-});
-*/
-
-/*app.get("/favicon.ico", (req,res) => {
-  res.setHeader("Content-Type", "image/vnd.microsoft.icon");
-  res.send(execSync("cat build/favicon.ico"));
-});*/
-
-app.get("/static/:mime/:file", (req,res) => {
-  const catline = "cat build/static/"+`${req.params.mime}`+"/mimefile";
-  const mimetype = execSync(`${catline}`).toString().slice(0,-1);
-  res.setHeader("Content-Type", mimetype);
-  res.sendFile(`build/static/${req.params.mime}/${req.params.file}`);
-});
-
-app.post("/create/:fname.:lname", (req, res) => {
-  let sql = `INSERT INTO test (firstname, lastname) VALUES ('${sanitize(req.params.fname)}', '${sanitize(req.params.lname)}');`;
-  con.query(sql, function (err, result) {
-    if (err) {res.json({ message: "Failed"}); console.log(err);}
-    else {res.json({ message: "Created", sqlret: JSON.stringify(result) });}
-  });
-});
-
-app.get("/read/:id", (req, res) => {
-  let sql = `SELECT * FROM test WHERE id = '${sanitize(req.params.id)}';`;
-  con.query(sql, function (err, result) {
-    if (err) {res.json({ message: "Failed" }); console.log(err);}
-    else {res.json({ message: JSON.stringify(result), sqlret: JSON.stringify(result) });}
-  });
-});
-
-app.get("/update/:id.:fname.:lname", (req, res) => {
-  let sql = `UPDATE test SET firstname = '${sanitize(req.params.fname)}', lastname = '${sanitize(req.params.lname)}' WHERE id = '${sanitize(req.params.id)}';`;
-  con.query(sql, function (err, result) {
-    if (err) {res.json({ message: "Failed"}); console.log(err);}
-    else {res.json({ message: "Updated", sqlret: JSON.stringify(result), q: sql });}
-  });
-});
-
-app.get("/delete/:id", (req, res) => {
-  let sql = `DELETE FROM test WHERE id = '${sanitize(req.params.id)}';`;
-  con.query(sql, function (err, result) {
-    if (err) {res.json({ message: "Failed"}); console.log(err);}
-    else {res.json({ message: "Deleted", sqlret: JSON.stringify(result) });}
-  });
-});
-
-app.get("/reset", (req, res) => {
-  let sqldrop = 'DROP TABLE test;'
-  let sqlrm = 'CREATE TABLE test.test(id INT AUTO_INCREMENT, firstname VARCHAR(255) NOT NULL DEFAULT "Mr.", lastname VARCHAR(255) NOT NULL DEFAULT "Kitty", PRIMARY KEY(id));'
-  con.query(sqldrop, function (err, result) {
-    if (err) {console.log(err);}
-  });
-  con.query(sqlrm, function (err, result) {
-    if (err) {console.log(err); res.json({ message: "Failed" });}
-    else {res.json({ message: "Reset", sqlret: JSON.stringify(result) });}
-  });
-});
-
-app.get("/dump", (req, res) => {
-  let sql = 'SELECT * FROM test';
-  con.query(sql, function(err, result) {
-    if (err) {console.log(err); res.json({ message: "Failed" });}
-    else {res.json({ message: JSON.stringify(result), sqlret: JSON.stringify(result) });}
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
