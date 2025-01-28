@@ -359,7 +359,7 @@ app.post("/rpreq",(req,res)=>{
   });
 });
 
-/*app.post("/preqs",(req,res)=>{
+app.post("/preqs",(req,res)=>{
   console.log('Purge request: '+req.ip);
   let i = ips.indexOf(req.ip);
   checkindex(res,i);
@@ -370,9 +370,13 @@ app.post("/rpreq",(req,res)=>{
     console.error('Blocked purge request');
     res.send('');
 });
-*/
+
 console.log('Production routes registered');
 
 /***
  E005 END PRODUCTION ROUTES
  ***/
+
+app.listen(PORT, () => {
+  console.log(`Server listening on ${PORT}`);
+});

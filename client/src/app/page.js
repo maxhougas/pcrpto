@@ -72,9 +72,11 @@ export default function Home(){
         if(jso.mode === 'admin') {
           setsprops(s(1,['Admin Mode']));
           setiprops(i(1,['text'],['Ausweis']));
-          setbprops(b(2,
-            [lemp,            vreqs,          cuser,        rpreq,           duser,        preqs,           termconns,              logout],
-            ['List Employees','View Requests','Create User','Remove Request','Delete User','Purge Requests','Terminate Connections','Log Out']
+          setbprops(b(3,
+            [lemp,            cuser,        duser,        vreqs,          rpreq,           
+             preqs,           conflicts,    cpass,          termconns,              logout],
+            ['List Employees','Create User','Delete User','View Requests','Remove Request',
+             'Purge Requests','Conflicts','Change Password','Terminate Connections','Log Out']
           ));
         }else{
           fun.genreq('GET','logout',null).then(
@@ -88,6 +90,9 @@ export default function Home(){
         fun.generr('JSON Error: '+fun.BACKEND+'login',err);
      });
   }  
+
+  function conflicts(){
+  }
 
   function lemp(){
     let url = 'lemp';
