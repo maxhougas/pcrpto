@@ -171,9 +171,9 @@ function qandres(res,i,q){
   sqs[i].query(q).then(
     sql => res.json(sql),
     err => {
-      res.send('');
       console.log('SQL Error: '+q);
       console.error(err);
+      res.send('');
   });
 }
 
@@ -290,7 +290,7 @@ app.post("/cuser",(req,res)=>{
   checkindex(res,i); //error if ip not found
 
   let newuser = sanitize(req.body.nuname);
-
+ 
   qandres(res,i,"GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+newuser+"@'%' IDENTIFIED BY 'default'");
 })
 
@@ -343,12 +343,7 @@ app.post("/rpreq",(req,res)=>{
   sqs[i].query("select empid from pto where id = "+id).then(
     jso => { console.log(jso[0]);
       if(jso[0][0] && (jso[0][0].empid === u || u === 'ptoboss')){
-        sqs[i].query("delete from pto where id = "+id).then(
-          jso => res.json(jso),
-          err => {
-            console.error(err);
-            res.send('');
-         });
+        qandres(res,i,"delete from pto where id = "+id)
       }else{
         console.error("User name does not match or request does not exist");
         res.send('');

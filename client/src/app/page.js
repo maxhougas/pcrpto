@@ -118,7 +118,7 @@ export default function Home(){
       setsprops(s(1,['Type "PURGE" and press button again']));
     else{
       setsprops(s(1,['Purging...']));
-      genreq('POST',url,{checkphrase:conf}).then(
+      fun.genreq('POST',url,{checkphrase:conf}).then(
         jso => setsprops(s(1,['Requests Purged'])),
         err => fun.generr('JSON Error: '+fun.BACKEND+url,err)
       );
