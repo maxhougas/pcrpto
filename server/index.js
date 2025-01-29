@@ -113,6 +113,13 @@ console.log('SQL constants defined');
  S004 START HELPER FUNCTIONS
  ***/
 
+function generr(m,err){
+  console.log(m);
+  console.error(err);
+  return err;
+}
+
+
 function purger(i){
   ips[i]=null;ips=ips.filter(ip=>ip);
   iks[i]=null;iks=iks.filter(ik=>ik);
@@ -177,6 +184,21 @@ function qandres(res,i,q){
   });
 }
 
+function utype(i){
+  let ip = '%';
+  //let u = 'ptoboss';
+  let u = sqs[i].pool.config.connectionConfig.user;
+  let el = 'Grants for '+u+'@';
+
+  return(
+    //mysql.createPool(poolconf('ptoboss','bossman')).query('show '+el+"'"+ip+"'").then(
+    sqs[i].query('show '+el+"'"+ip+"'").then(
+      //grs => console.log(grs[0][0][el+ip]),
+      grs => Promise.resolve(grs[0][0][el+ip].includes('GRANT CREATE USER')),
+      err => generr('SQL Error',err)
+  ));
+}
+
 console.log('Helper functions defined');
 
 /***
@@ -223,7 +245,6 @@ app.post("/login", (req,res) => {
   checkindex(res,i); //error if ip not found
 
   function mkpoolandq(pas){
-    //console.log('Forging uname and pass '+Buffer.from(pas).toString());
     sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
     return sqs[i].query('show tables;');
   }
@@ -231,16 +252,19 @@ app.post("/login", (req,res) => {
   dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
     pas => mkpoolandq(Buffer.from(pas)),
     err => {
-      console.log('Failed to decrypt @ /login)');
-      console.error(err); 
-      throw err;
+      generr('Failed to decrypt @ /login',err);
   }).then(
-    sqlr => res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
+    jso => utype(i),//res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
     err => {
-      console.log('Sql Failed--probably credentials rejected @ /login');
-      console.error(err);
+      res.send('');
+      generr('Query failed--check credentials @ /login',err);
+  }).then(
+    typ => {console.log(typ);res.json({mode:typ?'admin':'employee'})},
+    err => {
+      generr('Could not determine user type @ /login',err);
+  }).catch(err => {
       purger(i);
-      res.send(''); //Generate CORS error
+      res.send('');
   });
 });
 
@@ -355,15 +379,21 @@ app.post("/rpreq",(req,res)=>{
 });
 
 app.post("/preqs",(req,res)=>{
-  console.log('Purge request: '+req.ip);
+  console.log('Purge requests: '+req.ip);
   let i = ips.indexOf(req.ip);
   checkindex(res,i);
 
   if(sqs[i].pool.config.connectionConfig.user === 'ptoboss' && req.body.checkphrase === 'PURGE'){
     qandres(res,i,"truncate table pto");
-  }else
+  }else{
     console.error('Blocked purge request');
     res.send('');
+  }
+});
+
+app.post("/cpass",(req,res)=>{
+  console.log('Change password: '+req.ip);
+  checkindex(res,i);
 });
 
 console.log('Production routes registered');

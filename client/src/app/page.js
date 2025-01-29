@@ -30,11 +30,42 @@ export default function Home(){
     return({grid:grid,handler:handler,btxt:btxt});
   }
 
-  function loginpage()
-  {
+  function loginpage(){
     setsprops({grid:1,status:['Willkommen']});
     setiprops({grid:2,type:['text','password'],itxt:['Username','Password']});
-    setbprops({grid:2,handler:[loginemp,loginboss],btxt:['Employee Log In','Admin Log In']});
+    setbprops({grid:2,handler:[login],btxt:['Log In']});
+  }
+
+  function bossmode(){
+   setsprops({grid:1,status:['Admin Mode']});
+   setiprops({grid:1,type:['text'],itxt:['Ausweis']});
+   setbprops({
+     grid:3,
+     handler:[ lemp,            cuser,        duser,        vreqs,          rpreq,
+               preqs,           conflicts,  cpasspage,        termconns,              logout],
+     btxt:   ['List Employees','Create User','Delete User','View Requests','Remove Request',
+              'Purge Requests','Conflicts','Change Password','Terminate Connections','Log Out']
+   });
+  }
+
+  function employeemode(){
+    setsprops({grid:1,status:['Employee Mode']});
+    setiprops({
+      grid:2,
+      type:['datetime-local',      'datetime-local',    'number'],
+      itxt:['Start:YYYYMMDDHHMMSS','End:YYYYMMDDHHMMSS','Request ID']
+    });
+    setbprops({
+      grid:2,
+      handler:[ spreq,           rpreq,           vreqs,          cpasspage,        logout],
+      btxt:['Submit Request','Revoke Request','View Requests','Change Password','Log Out']
+    });
+  }
+
+  function cpasspage(){
+    setsprops({grid:1,status:['Change Password']});
+    setiprops({grid:2,type:['text','password','password','password'],itxt:['Username','Old Password','New Password','New Password']});
+    setbprops({grid:2,handler:[cpass,mainpage,logout],btxt:['Confirm','Back','Log Out']});
   }
 
 /***
@@ -50,6 +81,23 @@ export default function Home(){
         setsprops(s(1,'Back End Not Found'));
         fun.generr('JSON Error: '+fun.BACKEND+'echo',err);
     })
+  }
+
+  function login(){
+    setsprops(s(1,['Logging In...']));
+//    let uname = document.getElementById('i0').value;
+//    let pass = document.getElementById('i1').value;
+
+    fun.getkey().then(
+      key => fun.encrypt(key,document.getElementById('i1').value),
+      err => fun.generr('Failed to Import Key',err)
+    ).then(
+      enc => fun.genreq('POST','login',{uname:document.getElementById('i0').value,pass:Buffer.from(enc).toString('Base64')}),
+      err => fun.generr('Failed to encrypt',err)
+    ).then(
+      jso => {if(jso.mode === 'admin') bossmode(); else employeemode();},
+      err => fun.generr('JSON error', err)
+    );
   }
 
   function logout(){
@@ -70,14 +118,7 @@ export default function Home(){
     fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
       jso => {
         if(jso.mode === 'admin') {
-          setsprops(s(1,['Admin Mode']));
-          setiprops(i(1,['text'],['Ausweis']));
-          setbprops(b(3,
-            [lemp,            cuser,        duser,        vreqs,          rpreq,           
-             preqs,           conflicts,    cpass,          termconns,              logout],
-            ['List Employees','Create User','Delete User','View Requests','Remove Request',
-             'Purge Requests','Conflicts','Change Password','Terminate Connections','Log Out']
-          ));
+          bossmode();
         }else{
           fun.genreq('GET','logout',null).then(
             jso => setsprops(s(1,['User Is not an Admin'])),
@@ -142,6 +183,8 @@ export default function Home(){
   }
 
   function cpass(){
+     let url = 'cpass'
+
   }
 
   function cuser(){
@@ -210,12 +253,7 @@ export default function Home(){
     fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
       jso => {
         if(jso.mode === 'employee'){
-          setsprops(s(1,['Employee Mode']));
-          setiprops(i(2,['datetime-local','datetime-local','number'],['Start:YYYYMMDDHHMMSS','End:YYYYMMDDHHMMSS','Request ID']));
-          setbprops(b(2,
-            [spreq,           rpreq,           vreqs,          cpass,            logout],
-            ['Submit Request','Revoke Request','View Requests','Change Password','Log Out']
-          ));
+          employeemode();
         }else{
           fun.genreq('GET','logout',null).then(
             jso => setsprops(s(1,['User Is not an Employee'])),
