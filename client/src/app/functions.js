@@ -30,6 +30,10 @@ export function fixtime(t){
   return (t.slice(0,-7).replace(/[:-]/g,'').replace('T',' '));
 }
 
+export function tobase64(s){
+  return Buffer.from(s).toString('Base64');
+}
+
 export function genreq(m,u,b){
   return fetch(BACKEND+u,{
     method:m,

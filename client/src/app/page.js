@@ -11,6 +11,7 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
+  let pkey;
 
 /***
  S001 START HELPER FUNCTIONS
@@ -64,7 +65,7 @@ export default function Home(){
 
   function cpasspage(){
     setsprops({grid:1,status:['Change Password']});
-    setiprops({grid:2,type:['text','password','password','password'],itxt:['Username','Old Password','New Password','New Password']});
+    setiprops({grid:2,type:['text','password','password','password'],itxt:['Username','Old Password','New Password','Confirm Password']});
     setbprops({grid:2,handler:[cpass,mainpage,logout],btxt:['Confirm','Back','Log Out']});
   }
 
@@ -74,70 +75,71 @@ export default function Home(){
  ***/
 
   function cback(){
+    let url = 'echo';
     setsprops(s(1,'Checking...'));
-    fun.genreq('POST','echo',{echo:'echo'}).then(
+
+    fun.genreq('POST',url,{echo:'echo'}).then(
       jso=> loginpage(),
       err=>{
         setsprops(s(1,'Back End Not Found'));
-        fun.generr('JSON Error: '+fun.BACKEND+'echo',err);
+        fun.generr('JSON Error: '+fun.BACKEND+url,err);
     })
   }
 
+  function mainpage(){
+    let url = 'whoami';
+    let errmsg = 'Determine User Mode Failed'
+    setsprops(s(1,['Who Am I?']));
+
+    fun.genreq('GET',url,null).then(
+      jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
+      err => {
+        setsprops(s(1,errmsg));
+        fun.generr(errmsg+' '+fun.BACKEND+url,err);
+    });
+  }
+
   function login(){
+    let url = 'login';
+    let errmsg = 'Login Failed';
+    let uname = document.getElementById('i0').value;
+    let pass = document.getElementById('i1').value;
+    document.getElementById('i1').value = '';
     setsprops(s(1,['Logging In...']));
 
     fun.getkey().then(
-      key => fun.encrypt(key,document.getElementById('i1').value),
+      key => {pkey = key; return fun.encrypt(key,pass);},
       err => {
         console.error('Failed to import key');
         throw err;
     }).then(
-      enc => fun.genreq('POST','login',{uname:document.getElementById('i0').value,pass:Buffer.from(enc).toString('Base64')}),
+      enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),//Buffer.from(pas[1]).toString('Base64')
       err => {
-        console.error('Failed to encrypt');
+        console.error('Encryption failed');
         throw err;
     }).then(
-      jso => {if(jso.mode === 'admin') bossmode(); else employeemode();},
+      jso => mainpage(),
       err => {
-        console.error('Login failed');
+        console.error('JSON error');
         throw err;
     }).catch(err => {
-      fun.generr('Not logged in',err);
-      setsprops(s(1,['Login Failed']));
+      setsprops(s(1,[errmsg]));
+      fun.generr(errmsg+' '+fun.BACKEND+url,err);
     });
   }
 
   function logout(){
+    let url = 'logout';
+    let errmsg = 'Logout Failed';
     setsprops(s(1,['Logging Out...']));
 
-    fun.genreq('GET','logout',null).then(
+    fun.genreq('GET',url,null).then(
       jso => loginpage(),
       err => {
-        setsprops(s(1,['Logout Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+'logout',err);
-      }
-    );
+        setsprops(s(1,[errmsg]));
+        fun.generr(errmsg+' '+fun.BACKEND+url,err);
+    });
   }
-
-  function loginboss(){
-    setsprops(s(1,['Logging In...']));
-
-    fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
-      jso => {
-        if(jso.mode === 'admin') {
-          bossmode();
-        }else{
-          fun.genreq('GET','logout',null).then(
-            jso => setsprops(s(1,['User Is not an Admin'])),
-            err => {
-             setsprops(s(1,['Log Out Failed']));
-             fun.generr('JSON Error: '+fun.BACKEND+'logout',err);
-        });}
-      },err => {
-        setsprops(s(1,['Login Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
-     });
-  }  
 
   function conflicts(){
   }
@@ -168,8 +170,10 @@ export default function Home(){
       setsprops(s(1,['Purging...']));
       fun.genreq('POST',url,{checkphrase:conf}).then(
         jso => setsprops(s(1,['Requests Purged'])),
-        err => fun.generr('JSON Error: '+fun.BACKEND+url,err)
-      );
+        err => {
+          setsprops(s(1,['Purge Failed']));
+          fun.generr('JSON Error: '+fun.BACKEND+url,err)
+      });
     }
   }
 
@@ -178,21 +182,47 @@ export default function Home(){
 
     if(id){
       let url = 'rpreq'
+      let errmsg = 'Delete Failed';
       setsprops(s(1,['Deleting...']));
 
       fun.genreq('POST',url,{id:id}).then(
         jso => setsprops(s(1,['Request Deleted'])),
         err => {
-         setsprops(s(1,['Delete Failed']));
-         fun.generr('JSON Error: '+fun.BACKEND+url,err);
-    });}else
-     setsprops(s(1,['Failed: Empty String']));
+         setsprops(s(1,[errmsg]));
+         fun.generr(errmsg+' '+fun.BACKEND+url,err);
+    });}
+    else setsprops(s(1,['Failed: Empty String']));
   }
 
   function cpass(){
-     let url = 'cpass'
+    let url = 'cpass'
+    let errmsg = 'Password Change Failed';
+    let uname = document.getElementById('i0').value;
+    let opass = document.getElementById('i1').value;
+    let npass = document.getElementById('i2').value;
+    document.getElementById('i1').value = '';
+    document.getElementById('i2').value = '';
+    document.getElementById('i3').value = '';
+    setsprops(s(1,['Changing Password...']));
 
-  }
+/*    if(uname && opass && npass && npass == document.getElementById('i3').value){
+      Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey.npass)]).then(
+        pas => fun.genreq('POST',url,{uname:uname,opass:Buffer.from(pas[0]).toString('Base64'),npass:Buffer.from(pas[1]).toString('Base64')}),
+        err => {
+          console.error('Encryption failed');
+          throw err;
+      }).then(
+        jso => mainpage(),
+        err => {
+          console.error('JSON error');
+          throw err;
+      }).catch(err => {
+        setsprops(s(1,[errmsg]));
+        generr(errmsg+' '+fun.BACKEND+url,err);
+      });
+    }
+    else setsprops(s(1,['Failed: Empty String or Mismatch']));
+*/  }
 
   function cuser(){
     if(document.getElementById('i0').value === '')
@@ -251,26 +281,6 @@ export default function Home(){
       err => {
         setsprops(s(1,['Get Requests Failed']));
         fun.generr('JSON Error '+fun.BACKEND+url,err);
-    });
-  }
-
-  function loginemp(){
-    setsprops(s(1,['Logging In...']));
-
-    fun.login(document.getElementById('i0').value,document.getElementById('i1').value).then(
-      jso => {
-        if(jso.mode === 'employee'){
-          employeemode();
-        }else{
-          fun.genreq('GET','logout',null).then(
-            jso => setsprops(s(1,['User Is not an Employee'])),
-            err => {
-             setsprops(s(1,['Log Out Failed']));
-             fun.generr('JSON Error: '+fun.BACKEND+'logout',err);
-        });}
-      },err => {
-        setsprops(s(1,['Login Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+'login',err);
     });
   }
 

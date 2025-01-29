@@ -13,8 +13,7 @@ const { Buffer } = require("buffer");
  S001 START NON-ROUTE MIDDLEWARE
  ***/
 
-app.use((req,res,next) =>
-{
+app.use((req,res,next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
@@ -119,6 +118,12 @@ function generr(m,err){
   return err;
 }
 
+function reserr(res,m,err){
+   console.log(m);
+   console.error(err);
+   res.send(m);
+   return err;
+}
 
 function purger(i){
   ips[i]=null;ips=ips.filter(ip=>ip);
@@ -150,11 +155,11 @@ function exp(uk){
 }
 
 function dec(i,b){
-  return crypto.subtle.decrypt(
-    {name:'RSA-OAEP'},
-    iks[i],
-    b
-  );
+  return crypto.subtle.decrypt({name:'RSA-OAEP'},iks[i],b);
+}
+
+function unbase64(s){
+  Uint8Array.from(Buffer.from(s,'base64'));
 }
 
 function checkindex(res,i){
@@ -166,12 +171,6 @@ function checkindex(res,i){
     );
     res.send(''); //Empty string triggers CORS error in client.
   }
-}
-
-// ( req from routing functions )
-function checkip(req){
-  let i = ips.indexOf(req.ip)
-  return (i !== -1)
 }
 
 function qandres(res,i,q){
@@ -186,17 +185,16 @@ function qandres(res,i,q){
 
 function utype(i){
   let ip = '%';
-  //let u = 'ptoboss';
   let u = sqs[i].pool.config.connectionConfig.user;
   let el = 'Grants for '+u+'@';
 
   return(
-    //mysql.createPool(poolconf('ptoboss','bossman')).query('show '+el+"'"+ip+"'").then(
     sqs[i].query('show '+el+"'"+ip+"'").then(
-      //grs => console.log(grs[0][0][el+ip]),
       grs => Promise.resolve(grs[0][0][el+ip].includes('GRANT CREATE USER')),
-      err => generr('SQL Error',err)
-  ));
+      err => {
+        console.log('Query failed');
+        throw err;
+   }));
 }
 
 console.log('Helper functions defined');
@@ -244,29 +242,32 @@ app.post("/login", (req,res) => {
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  function mkpoolandq(pas){
+  /*function mkpoolandq(pas){
     sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
     return sqs[i].query('show tables;');
-  }
+  }*/
 
-  dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
-    pas => mkpoolandq(Buffer.from(pas)),
+  dec(i,unbase64(req.body.pass)).then(//Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
+    pas => {
+      sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
+      return sqs[i].query('show tables;');
+    }
     err => {
      console.error('Failed to decrypt');
      throw err;
    }).then(
-    jso => utype(i),//res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
+    jso => utype(i),
     err => {
-      console.error('Query failed);
-      throw err;}
-  ).then(
-    typ => {console.log(typ);res.json({mode:typ?'admin':'employee'})},
+      console.error('Query failed');
+      throw err;
+   }).then(
+    typ => res.json({mode:typ?'admin':'employee'}),
     err => {
-      console.error('Failed to determine user type');
-      throw err
+      console.error('Could not determine user type');
+      throw err;
   }).catch(err => {
       purger(i);
-      generr('Login Failed',err);
+      generr('Login Failed @ /login',err);
       res.send('');
   });
 });
@@ -396,7 +397,25 @@ app.post("/preqs",(req,res)=>{
 
 app.post("/cpass",(req,res)=>{
   console.log('Change password: '+req.ip);
+  let i = ips.indexOf(req.ip)
   checkindex(res,i);
+
+/*  Promise.all([dec(Uint8Array.from(Buffer.from(req.body.pass,'base64'))),dec(Uint8Array.from(Buffer.from(req.body.pass,'base64')))]);
+  sqs[i].query()
+*/
+});
+
+app.get("/whoami",(req,res)=>{
+  console.log('Who is: '+req.ip);
+  let i = ips.indexOf(req.ip);
+  checkindex(res,i);
+
+  utype(i).then(
+    who => res.json({mode:who?'admin':'employee'}),
+    err => {
+      generr('Could not determine user type @ /whoami',err);
+      res.send('');
+  });
 });
 
 console.log('Production routes registered');
