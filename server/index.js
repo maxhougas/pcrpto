@@ -252,18 +252,21 @@ app.post("/login", (req,res) => {
   dec(i,Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
     pas => mkpoolandq(Buffer.from(pas)),
     err => {
-      generr('Failed to decrypt @ /login',err);
-  }).then(
+     console.error('Failed to decrypt');
+     throw err;
+   }).then(
     jso => utype(i),//res.json(req.body.uname === 'ptoboss' ? {mode:'admin'} : {mode:'employee'}),
     err => {
-      res.send('');
-      generr('Query failed--check credentials @ /login',err);
-  }).then(
+      console.error('Query failed);
+      throw err;}
+  ).then(
     typ => {console.log(typ);res.json({mode:typ?'admin':'employee'})},
     err => {
-      generr('Could not determine user type @ /login',err);
+      console.error('Failed to determine user type');
+      throw err
   }).catch(err => {
       purger(i);
+      generr('Login Failed',err);
       res.send('');
   });
 });

@@ -85,19 +85,26 @@ export default function Home(){
 
   function login(){
     setsprops(s(1,['Logging In...']));
-//    let uname = document.getElementById('i0').value;
-//    let pass = document.getElementById('i1').value;
 
     fun.getkey().then(
       key => fun.encrypt(key,document.getElementById('i1').value),
-      err => fun.generr('Failed to Import Key',err)
-    ).then(
+      err => {
+        console.error('Failed to import key');
+        throw err;
+    }).then(
       enc => fun.genreq('POST','login',{uname:document.getElementById('i0').value,pass:Buffer.from(enc).toString('Base64')}),
-      err => fun.generr('Failed to encrypt',err)
-    ).then(
+      err => {
+        console.error('Failed to encrypt');
+        throw err;
+    }).then(
       jso => {if(jso.mode === 'admin') bossmode(); else employeemode();},
-      err => fun.generr('JSON error', err)
-    );
+      err => {
+        console.error('Login failed');
+        throw err;
+    }).catch(err => {
+      fun.generr('Not logged in',err);
+      setsprops(s(1,['Login Failed']));
+    });
   }
 
   function logout(){
