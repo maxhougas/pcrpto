@@ -69,46 +69,6 @@ export function encrypt(k,pass){
   return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
 }
 
-export function login(uname,pass){
-  return getkey().then(
-    key => encrypt(key,pass),
-    err => generr('Failed to Import Key',err)
-  ).then(
-    enc => genreq('POST','login',{uname:uname,pass:Buffer.from(enc).toString('Base64')}),
-    err => generr('Failed to encrypt',err)
-  );
-}
-
-/***	
- E001 END FUNCTIONS
- S002 START ERROR FUNCTIONS
- ***/
-
-export function generr(m,err){
-  console.log(m);
-  console.error(err);
-  return err;
-}
-
-/***
- E002 END ERROR FUNCTIONS
- S003 START CLASSES
-***/
-
-const PHEAD_PROT = {
-  method: 'POST',
-  headers:{"Content-type":"application/json"},
-  body:JSON.stringify({uname:'uname',pass:'pass'})
-};
-
-export function phead(b){
-  return {
-    method:'POST',
-    headers:{"Content-type":"application/json"},
-    body:JSON.stringify(b)
-  }
-}
-
 export function checkconflicts(requests){
   let s = requests.map(el => Number(fixtime(el.startdate).replace(' ','')));
   let e = requests.map(el => Number(fixtime(el.enddate).replace(' ','')));
@@ -126,3 +86,17 @@ export function checkconflicts(requests){
   return c;
 }
 
+/***	
+ E001 END FUNCTIONS
+ S002 START ERROR FUNCTIONS
+ ***/
+
+export function generr(m,err){
+  console.log(m);
+  console.error(err);
+  return err;
+}
+
+/***
+ E002 END ERROR FUNCTIONS
+***/

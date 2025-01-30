@@ -84,14 +84,6 @@ console.log('Debug routes registered');
  S003 START SQL CONSTANTS
  ***/
 
-const SQL_PROT = {
-  host: MIP,
-  user: "uname",
-  password: "pass",
-  port: "3306",
-  database: "pcr"
-}
-
 function poolconf(uname,pass){
   return {
     host: MIP,
@@ -117,13 +109,6 @@ function generr(m,err){
   console.log(m);
   console.error(err);
   return err;
-}
-
-function reserr(res,m,err){
-   console.log(m);
-   console.error(err);
-   res.send(m);
-   return err;
 }
 
 function purger(i){
@@ -159,7 +144,10 @@ function dec(i,b){
   return (
     crypto.subtle.decrypt({name:'RSA-OAEP'},iks[i],b).then(
       dec => Promise.resolve(Buffer.from(dec).toString()),
-      err => {throw generr('Decrypt failed',err);}
+      err => {
+        console.error('Decrypt failed');
+        throw err;
+      }
   ));
 }
 
@@ -178,8 +166,7 @@ function qandres(res,i,q){
   sqs[i].query(q).then(
     sql => res.json(sql),
     err => {
-      console.log('SQL Error: '+q);
-      console.error(err);
+      generr('SQL Error: '+q,err);
       res.send('');
   });
 }
@@ -192,7 +179,7 @@ function utype(i){
     sqs[i].query('show '+el+"'"+NIP+"'").then(
       grs => Promise.resolve(grs[0][0][el+NIP].includes('GRANT CREATE USER')),
       err => {
-        console.log('Query failed');
+        console.error('Query failed');
         throw err;
    }));
 }
@@ -304,7 +291,7 @@ app.get("/lemp",(req,res)=>{
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  qandres(res,i,"select user from mysql.user where user NOT IN ('maria','ptoboss','mariadb.sys','root')");
+  qandres(res,i,"select user from mysql.user where user NOT IN ('maria','mariadb.sys','root')");
 })
 
 app.post("/cuser",(req,res)=>{
@@ -348,7 +335,7 @@ app.post("/spreq",(req,res)=>{
   let s = sanitize(req.body.start);
   let e = sanitize(req.body.end);
   if(u === 'ptoboss'){
-    console.error('Blocked ptoboss submission attempt');
+    console.error('Blocked admin submission attempt');
     res.send('');    
   }else{
     qandres(res,i,"insert into pto (empid,startdate,enddate) values ('"+u+"','"+s+"','"+e+"')")
