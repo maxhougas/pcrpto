@@ -40,7 +40,7 @@ app.get("/api/:param1.:param2", (req, res) => {
 });
 
 app.post("/echo", (req,res) => {
-  console.log('API POST echo request from '+req.ip);
+  console.log('API POST echo request: '+req.ip);
   res.json(req.body);
 });
 
@@ -111,11 +111,26 @@ function generr(m,err){
   return err;
 }
 
-function purger(i){
+function ngenerr(m,err){
+  return Error(m,err?{cause:err}:null);
+}
+
+function checkindex(res,i){
+  if(i === -1){
+    console.error(
+      'Record not found found.\n'+ 
+      'IP & Private Key should have been registered by "/getkey"\n'+
+      'Sending CORS error to client.'
+    );
+    res.send('');
+  }
+}
+
+function deleter(i){
   ips[i]=null;ips=ips.filter(ip=>ip);
   iks[i]=null;iks=iks.filter(ik=>ik);
   sqs[i]=null;sqs=sqs.filter(sq=>sq);
-  console.log('IP registration purged');
+  console.log('IP registration deleted');
 }
 
 function sanitize(q) {
@@ -134,39 +149,23 @@ function mkeys(){
 function exp(uk){
   return crypto.subtle.exportKey('spki', uk).then(
     key => Buffer.from(new Uint8Array(key)).toString('base64'),
-    err => {
-      console.error(err);
-      console.log('Failed to Export Key');
-  });
+    err => {throw Error('Export key failed',{cause:err});}
+  );
 }
 
 function dec(i,b){
   return (
     crypto.subtle.decrypt({name:'RSA-OAEP'},iks[i],b).then(
-      dec => Promise.resolve(Buffer.from(dec).toString()),
-      err => {
-        console.error('Decrypt failed');
-        throw err;
-      }
+      dec => Buffer.from(dec).toString(),
+      err => {throw Error('Decrypt failed',{cause:err});}
   ));
-}
-
-function checkindex(res,i){
-  if(i === -1){
-    console.error( 
-      'Record not found found.\n'+ 
-      'IP & Private Key should have been registered by "/getkey"\n'+
-      'Sending CORS error to client.'
-    );
-    res.send(''); //Empty string triggers CORS error in client.
-  }
 }
 
 function qandres(res,i,q){
   sqs[i].query(q).then(
     sql => res.json(sql),
     err => {
-      generr('SQL Error: '+q,err);
+      console.error(Error('SQL Error: '+q,{cause:err}));
       res.send('');
   });
 }
@@ -177,11 +176,9 @@ function utype(i){
 
   return(
     sqs[i].query('show '+el+"'"+NIP+"'").then(
-      grs => Promise.resolve(grs[0][0][el+NIP].includes('GRANT CREATE USER')),
-      err => {
-        console.error('Query failed');
-        throw err;
-   }));
+      grs => grs[0][0][el+NIP].includes('GRANT CREATE USER'),
+      err => {throw Error('Query failed',{cause,err});}
+  ));
 }
 
 console.log('Helper functions defined');
@@ -192,34 +189,30 @@ console.log('Helper functions defined');
  ***/
 
 app.get("/getkey", (req, res) => {
-  console.log('Key requested '+req.ip);
-
+  console.log('Key requested: '+req.ip);
   let i = ips.indexOf(req.ip);
   if(i !== -1){
     console.log('Record exists for '+req.ip+'--logging out.')
-    purger(i);
+    deleter(i);
   }
-
   i = ips.length;  
   ips[i] = req.ip; 
 
-  function handlekp(i,kp){
+/*  function handlekp(i,kp){
     iks[i] = kp.privateKey;
     return exp(kp.publicKey);
   }
+*/
 
   mkeys().then(
-    kp => handlekp(i,kp),
-    err => {
-      console.log('Failed to generate key pair "index.getkey"');
-      console.error(err);
-      throw err;
-  }).then(
+    kp => {iks[i]=kp.privateKey;return exp(kp.publicKey);},//handlekp(i,kp),
+    err => {throw Error('Generate key pair failed',{cause:err});}
+  ).then(
     uk => res.json(uk),
-    err => {
-      console.error(err);
-      console.log('Failed to export public key "index.getkey"');
-      purger(i);
+    err => {throw Error('Export public key failed',{cause:err});}
+  ).catch(err =>{
+    console.error(err);
+    deleter(i);
   });
 }); 
 
@@ -243,12 +236,12 @@ app.post("/login", (req,res) => {
       console.error('Query failed');
       throw err;
    }).then(
-    typ => res.json({mode:typ?'admin':'employee'}),
+    adm => res.json({mode:adm?'admin':'employee'}),
     err => {
       console.error('Could not determine user type');
       throw err;
   }).catch(err => {
-      purger(i);
+      deleter(i);
       generr('Login Failed @ /login',err);
       res.send('');
   });
@@ -260,7 +253,7 @@ app.get("/logout", (req, res) => {
   let i = ips.indexOf(req.ip); 
  
   if(i > -1){
-    purger(i);
+    deleter(i);
     console.log('Log out completed.');
   }else{
     console.log('IP not found; no action taken.');
@@ -274,16 +267,23 @@ app.post("/reset",(req,res)=>{
   let i = ips.indexOf(req.ip);
   checkindex(res,i);
 
-  if(sqs[i].pool.config.connectionConfig.user === 'ptoboss' && req.body.checkphrase === 'reset'){
-    ips=[];
-    sqs=[];
-    iks=[];
-    console.log('All registrations purged')
-    res.json({s:0});
-  }else{
-    console.error('Check phrase mismatch or nonadmin user @ /reset');
-    res.send(''); //Trigger CORS error
-  }
+  utype(i).then(
+    adm => {
+      if(adm && req.body.checkphrase === 'reset'){
+        ips=[];
+        sqs=[];
+        iks=[];
+        console.log('All registrations purged');
+        res.json({s:0});
+      }else{
+        throw Error('Checkphrase mismatch or nonadmin user');
+      }},
+    err => {
+      throw Error('Could not determine user type',{cause:err});
+    }).catch(err => {
+      console.error(Error('Reset failed',{cause:err}));
+      res.send('');
+  });
 });
 
 app.get("/lemp",(req,res)=>{
@@ -398,13 +398,13 @@ app.post("/cpass",(req,res)=>{
       console.error('Decryption Failed');
       throw err;
     }).then(
-      jso => {purger(i);res.json(jso);},
+      jso => {deleter(i);res.json(jso);},
       err => {
         console.error('Query Failed');
         throw err;
     }).catch(err => {
       generr('Change password failed',err);
-      purger(ips.length);
+      deleter(ips.length);
       res.send('');
     });
 });

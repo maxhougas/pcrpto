@@ -11,7 +11,7 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
-  React.useEffect(() => {
+  /*React.useEffect(() => {
     function tabclose(e){
       e.preventDefault();
       console.log('Logging out on tab closure');
@@ -21,7 +21,7 @@ export default function Home(){
     window.addEventListener('beforeunload',tabclose);
 
     return () => {window.removeEventListener('beforeunload',tabclose);};
-  }, []);
+  }, []);*/
 
   let pkey;
 
@@ -47,9 +47,6 @@ export default function Home(){
     setsprops({grid:1,status:['Willkommen']});
     setiprops({grid:2,type:['text','password'],itxt:['Username','Password']});
     setbprops({grid:2,handler:[login],btxt:['Log In']});
-
-    if(document.getElementById('i0')) document.getElementById('i0').value = '';
-    if(document.getElementById('i0')) document.getElementById('i1').value = '';
   }
 
   function bossmode(){
