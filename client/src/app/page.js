@@ -11,6 +11,18 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
+  React.useEffect(() => {
+    function tabclose(e){
+      e.preventDefault();
+      console.log('Logging out on tab closure');
+      logout();
+      return 'Logging Out';
+    }
+    window.addEventListener('beforeunload',tabclose);
+
+    return () => {window.removeEventListener('beforeunload',tabclose);};
+  }, []);
+
   let pkey;
 
 /***
@@ -35,6 +47,9 @@ export default function Home(){
     setsprops({grid:1,status:['Willkommen']});
     setiprops({grid:2,type:['text','password'],itxt:['Username','Password']});
     setbprops({grid:2,handler:[login],btxt:['Log In']});
+
+    if(document.getElementById('i0')) document.getElementById('i0').value = '';
+    if(document.getElementById('i0')) document.getElementById('i1').value = '';
   }
 
   function bossmode(){
@@ -113,7 +128,7 @@ export default function Home(){
         console.error('Failed to import key');
         throw err;
     }).then(
-      enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),//Buffer.from(pas[1]).toString('Base64')
+      enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
       err => {
         console.error('Encryption failed');
         throw err;
@@ -142,6 +157,21 @@ export default function Home(){
   }
 
   function conflicts(){
+    let url = 'vreqs';
+    setsprops(s(1,['Getting Requests...']));
+
+/*    function mklist(jso){
+      let lst = '';
+      return(lst);
+    }
+*/
+
+    fun.genreq('GET',url,null).then(
+      jso => setsprops(s(4,fun.checkconflicts(jso[0]))),
+      err => {
+        setsprops(s(1,['Get Requests Failed']));
+        fun.generr('Failed to get Requests '+fun.BACKEND+url,err);
+    });
   }
 
   function lemp(){
@@ -200,14 +230,16 @@ export default function Home(){
     let uname = document.getElementById('i0').value;
     let opass = document.getElementById('i1').value;
     let npass = document.getElementById('i2').value;
+    let cpass = document.getElementById('i3').value;
+    document.getElementById('i0').value = '';
     document.getElementById('i1').value = '';
     document.getElementById('i2').value = '';
     document.getElementById('i3').value = '';
     setsprops(s(1,['Changing Password...']));
 
-/*    if(uname && opass && npass && npass == document.getElementById('i3').value){
-      Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey.npass)]).then(
-        pas => fun.genreq('POST',url,{uname:uname,opass:Buffer.from(pas[0]).toString('Base64'),npass:Buffer.from(pas[1]).toString('Base64')}),
+    if(uname && opass && npass && cpass && npass == cpass){
+      Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey,npass)]).then(
+        pas => fun.genreq('POST',url,{uname:uname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1])}),
         err => {
           console.error('Encryption failed');
           throw err;
@@ -218,11 +250,11 @@ export default function Home(){
           throw err;
       }).catch(err => {
         setsprops(s(1,[errmsg]));
-        generr(errmsg+' '+fun.BACKEND+url,err);
+        fun.generr(errmsg+' '+fun.BACKEND+url,err);
       });
     }
     else setsprops(s(1,['Failed: Empty String or Mismatch']));
-*/  }
+  }
 
   function cuser(){
     if(document.getElementById('i0').value === '')
@@ -276,7 +308,7 @@ export default function Home(){
       return(lst);
     }
 
-    fun.genreq('GET',url,).then(
+    fun.genreq('GET',url,null).then(
       jso => setsprops(s(4,mklist(jso[0]))),
       err => {
         setsprops(s(1,['Get Requests Failed']));
@@ -304,6 +336,8 @@ export default function Home(){
 /***
  E002 END BUTTON FUNCTIONS
  ***/
+
+  window.beforeunload = logout;
   
   return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
 }

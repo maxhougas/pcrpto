@@ -1,13 +1,16 @@
 // server/index.js
 
 const express = require("express");
-const PORT = process.env.PORT || 5000;
 const app = express();
-//const mysql = require("mysql2");
 const mysql = require("mysql2/promise");
 const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
+
+const PORT = process.env.PORT || 5000;
+const MIP = process.env.MIP || '172.17.0.1';
+const NIP = process.env.NIP || "%";
+
 
 /***
  S001 START NON-ROUTE MIDDLEWARE
@@ -81,10 +84,8 @@ console.log('Debug routes registered');
  S003 START SQL CONSTANTS
  ***/
 
-const DEFGATE = execSync("/home/user/pcrpto/server/ip.sh").toString().slice(0,-1);
-
 const SQL_PROT = {
-  host: DEFGATE,
+  host: MIP,
   user: "uname",
   password: "pass",
   port: "3306",
@@ -93,7 +94,7 @@ const SQL_PROT = {
 
 function poolconf(uname,pass){
   return {
-    host: DEFGATE,
+    host: MIP,
     user: uname,
     password: pass,
     port: "3306",
@@ -155,11 +156,11 @@ function exp(uk){
 }
 
 function dec(i,b){
-  return crypto.subtle.decrypt({name:'RSA-OAEP'},iks[i],b);
-}
-
-function unbase64(s){
-  Uint8Array.from(Buffer.from(s,'base64'));
+  return (
+    crypto.subtle.decrypt({name:'RSA-OAEP'},iks[i],b).then(
+      dec => Promise.resolve(Buffer.from(dec).toString()),
+      err => {throw generr('Decrypt failed',err);}
+  ));
 }
 
 function checkindex(res,i){
@@ -184,13 +185,12 @@ function qandres(res,i,q){
 }
 
 function utype(i){
-  let ip = '%';
   let u = sqs[i].pool.config.connectionConfig.user;
   let el = 'Grants for '+u+'@';
 
   return(
-    sqs[i].query('show '+el+"'"+ip+"'").then(
-      grs => Promise.resolve(grs[0][0][el+ip].includes('GRANT CREATE USER')),
+    sqs[i].query('show '+el+"'"+NIP+"'").then(
+      grs => Promise.resolve(grs[0][0][el+NIP].includes('GRANT CREATE USER')),
       err => {
         console.log('Query failed');
         throw err;
@@ -242,16 +242,11 @@ app.post("/login", (req,res) => {
   let i = ips.indexOf(req.ip);
   checkindex(res,i); //error if ip not found
 
-  /*function mkpoolandq(pas){
-    sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
-    return sqs[i].query('show tables;');
-  }*/
-
-  dec(i,unbase64(req.body.pass)).then(//Uint8Array.from(Buffer.from(req.body.pass,'base64'))).then(
+  dec(i,Buffer.from(req.body.pass,'base64')).then(
     pas => {
       sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
       return sqs[i].query('show tables;');
-    }
+    },
     err => {
      console.error('Failed to decrypt');
      throw err;
@@ -400,9 +395,31 @@ app.post("/cpass",(req,res)=>{
   let i = ips.indexOf(req.ip)
   checkindex(res,i);
 
-/*  Promise.all([dec(Uint8Array.from(Buffer.from(req.body.pass,'base64'))),dec(Uint8Array.from(Buffer.from(req.body.pass,'base64')))]);
-  sqs[i].query()
-*/
+  ips[ips.length] = ips[i];
+  iks[iks.length] = iks[i];
+  sqs[sqs.length] = '';
+
+  Promise.all([dec(i,Buffer.from(req.body.opass,'base64')),dec(i,Buffer.from(req.body.npass,'base64'))]).then(
+    pas => {
+      if(pas[0] === sqs[i].pool.config.connectionConfig.password){
+        sqs[sqs.length-1] = mysql.createPool(poolconf(req.body.uname,pas[1]));
+        return sqs[i].query('set password for '+req.body.uname+"@'"+NIP+"' = password('"+pas[1]+"')");
+      }
+      else
+        throw Error('Bad password');
+    },err => {
+      console.error('Decryption Failed');
+      throw err;
+    }).then(
+      jso => {purger(i);res.json(jso);},
+      err => {
+        console.error('Query Failed');
+        throw err;
+    }).catch(err => {
+      generr('Change password failed',err);
+      purger(ips.length);
+      res.send('');
+    });
 });
 
 app.get("/whoami",(req,res)=>{

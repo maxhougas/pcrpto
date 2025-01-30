@@ -1,4 +1,7 @@
-export const BACKEND = 'http://localhost:5000/'
+export const MIP = process.env.MIP || '172.17.0.2';
+export const NIP = process.env.NIP || 'localhost';
+export const PORT = process.env.PORT || 5000;
+export const BACKEND = 'http://'+NIP+':'+PORT+'/';
 
 /***
  E000 END CONSTANTS
@@ -105,3 +108,21 @@ export function phead(b){
     body:JSON.stringify(b)
   }
 }
+
+export function checkconflicts(requests){
+  let s = requests.map(el => Number(fixtime(el.startdate).replace(' ','')));
+  let e = requests.map(el => Number(fixtime(el.enddate).replace(' ','')));
+  let c = [];
+
+  for(let i=0; i<s.length; i++)
+    for(let j=i+1; j<s.length; j++)
+      if(
+        (s[i] < s[j] && s[j] < e[i]) ||
+        (s[i] < e[j] && e[j] < e[i]) ||
+        (s[j] < s[i] && s[i] < e[i]) ||
+        (s[j] < e[i] && e[i] < e[j]) ||
+        (s[i] == s[j] && e[i] == e[j])
+      ) c = c.concat(''+(i+1)+' & '+(j+1));
+  return c;
+}
+
