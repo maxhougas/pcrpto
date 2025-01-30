@@ -160,12 +160,6 @@ export default function Home(){
     let url = 'vreqs';
     setsprops(s(1,['Getting Requests...']));
 
-/*    function mklist(jso){
-      let lst = '';
-      return(lst);
-    }
-*/
-
     fun.genreq('GET',url,null).then(
       jso => setsprops(s(4,fun.checkconflicts(jso[0]))),
       err => {
