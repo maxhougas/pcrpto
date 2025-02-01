@@ -2,10 +2,12 @@
 
 const express = require("express");
 const app = express();
+const https = require('https');
 const mysql = require("mysql2/promise");
 const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
+const fs = require('fs');
 
 const PORT = process.env.PORT || 5000;
 const MIP = process.env.MIP || '172.17.0.1';
@@ -17,7 +19,7 @@ const CLIPATH = '/public/index.html'
  ***/
 
 app.use((req,res,next) => {
-//  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Origin', '*');//'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
@@ -386,6 +388,16 @@ console.log('Production routes registered');
  E005 END PRODUCTION ROUTES
  ***/
 
+const sslkey = fs.readFileSync('server-key.pem');
+const sslcert = fs.readFileSync('server-req.pem');
+
+/*
+https.createServer({sslkey,sslcert},app).listen(PORT, () => {
+ console.log('Server listening on '+PORT);
+});
+*/
+
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
 });
+

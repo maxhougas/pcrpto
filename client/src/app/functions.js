@@ -1,7 +1,6 @@
-export const MIP = process.env.MIP || '172.17.0.2';
 export const NIP = process.env.NIP || 'localhost';
-export const PORT = process.env.PORT || 3000;
-export const BACKEND = '/'; //'http://'+NIP+':'+PORT+'/';
+export const PORT = process.env.PORT || 5000;
+export const BACKEND = 'http://'+NIP+':'+PORT+'/';
 
 /***
  E000 END CONSTANTS
@@ -69,7 +68,7 @@ export function checkconflicts(requests){
       if(
         (s[i] < s[j] && s[j] < e[i]) ||
         (s[i] < e[j] && e[j] < e[i]) ||
-        (s[j] < s[i] && s[i] < e[i]) ||
+        (s[j] < s[i] && s[i] < e[j]) ||
         (s[j] < e[i] && e[i] < e[j]) ||
         (s[i] == s[j] && e[i] == e[j])
       ) c = c.concat(''+(i+1)+' & '+(j+1));

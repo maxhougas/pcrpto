@@ -5,10 +5,9 @@ const nextConfig = {};
 const cspHeader =`
   script-src-elem 'self';
 `
-*/
 
 export default {
-/*  async headers() {
+  async headers() {
     return [
       {
         source: '/(.*)',
@@ -21,7 +20,7 @@ export default {
       },
     ]
   }
-*/
+
   async rewrites() {
     return [
       {
@@ -31,6 +30,6 @@ export default {
     ]
   }
 }
+*/
 
-
-//export default nextConfig;
+export default nextConfig;

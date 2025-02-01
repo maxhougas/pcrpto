@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd ~/pcrpto/server
+cd /home/user/pcrpto/server
 node index.js &> ~/logsrv &
-cd ~/pcrpto/client
+cd /home/user/pcrpto/client
 npm run dev-https &> ~/logcli &
