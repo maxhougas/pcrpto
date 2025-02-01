@@ -8,19 +8,6 @@ export const BACKEND = 'http://'+NIP+':'+PORT+'/';
  S001 START FUNCTIONS
  ***/
 
-export function api(){
-  return fetch(`http://localhost:5000/api/kitty.cat`).then(
-    res => res.json()
-  ).then(
-    jso => {console.log('kitty');jso;},
-    err => {throw err;console.log('API Echo Failed "reqs/api"');console.error(err);}
-  );
-}
-
-export function testpair(){
-  fetch('http://localhost:5000/pair')
-}
-
 export function gcols(n){
   return 'repeat('+n+',1fr)';
 }
@@ -44,14 +31,17 @@ export function genreq(m,u,b){
     body: m === 'POST' ? JSON.stringify(b) : null
   }).then(
     res => res.json(),
-    err => {throw generr('Connection Failed: '+u,err);}
+    err => {throw Error('Connection Failed',{cause:err});}
+  ).then(
+    jso => {if(jso.err) throw Error('Error from server',{cause:jso.err}); else  return jso.d?jso.d:jso;},
+    err => {throw Error('JSON parse failed',{cause:err});}
   );
 }
 
 export function getkey(){
   return genreq('GET','getkey',null).then(
     key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
-    err => generr('JSON Error: '+BACKEND+'getkey',err)
+    err => {throw Error('Key request failed',{cause:err});}
   );
 }
 
@@ -66,7 +56,7 @@ export function processkey(k){
 }
 
 export function encrypt(k,pass){
-  return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass))
+  return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass));
 }
 
 export function checkconflicts(requests){
@@ -88,15 +78,4 @@ export function checkconflicts(requests){
 
 /***	
  E001 END FUNCTIONS
- S002 START ERROR FUNCTIONS
  ***/
-
-export function generr(m,err){
-  console.log(m);
-  console.error(err);
-  return err;
-}
-
-/***
- E002 END ERROR FUNCTIONS
-***/

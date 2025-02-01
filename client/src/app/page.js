@@ -11,7 +11,7 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
-  /*React.useEffect(() => {
+  React.useEffect(() => {
     function tabclose(e){
       e.preventDefault();
       console.log('Logging out on tab closure');
@@ -21,7 +21,7 @@ export default function Home(){
     window.addEventListener('beforeunload',tabclose);
 
     return () => {window.removeEventListener('beforeunload',tabclose);};
-  }, []);*/
+  }, []);
 
   let pkey;
 
@@ -92,10 +92,10 @@ export default function Home(){
 
     fun.genreq('POST',url,{echo:'echo'}).then(
       jso=> loginpage(),
-      err=>{
-        setsprops(s(1,'Back End Not Found'));
-        fun.generr('JSON Error: '+fun.BACKEND+url,err);
-    })
+      err=>{setsprops(s(1,'Back End Not Found')); throw Error(fun.BACKEND+url,{cause:err});}
+    ).catch(err =>{
+      console.error(err);
+    });
   }
 
   function mainpage(){
@@ -105,9 +105,10 @@ export default function Home(){
 
     fun.genreq('GET',url,null).then(
       jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
-      err => {
-        setsprops(s(1,errmsg));
-        fun.generr(errmsg+' '+fun.BACKEND+url,err);
+      err => {throw Error(fun.BACKEND+url,{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,errmsg));
+      console.error(err);
     });
   }
 
@@ -121,22 +122,16 @@ export default function Home(){
 
     fun.getkey().then(
       key => {pkey = key; return fun.encrypt(key,pass);},
-      err => {
-        console.error('Failed to import key');
-        throw err;
-    }).then(
+      err => {throw Error('Get key failed',{cause:err});}
+    ).then(
       enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
-      err => {
-        console.error('Encryption failed');
-        throw err;
-    }).then(
+      err => {throw Error('Encryption failed',{cause:err});}
+    ).then(
       jso => mainpage(),
-      err => {
-        console.error('JSON error');
-        throw err;
-    }).catch(err => {
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err => {
       setsprops(s(1,[errmsg]));
-      fun.generr(errmsg+' '+fun.BACKEND+url,err);
+      console.error(err);
     });
   }
 
@@ -147,26 +142,30 @@ export default function Home(){
 
     fun.genreq('GET',url,null).then(
       jso => loginpage(),
-      err => {
-        setsprops(s(1,[errmsg]));
-        fun.generr(errmsg+' '+fun.BACKEND+url,err);
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,[errmsg]));
+      console.error(err);
     });
   }
 
   function conflicts(){
     let url = 'vreqs';
+    let errmsg = 'Get Requests Failed';
     setsprops(s(1,['Getting Requests...']));
 
     fun.genreq('GET',url,null).then(
       jso => setsprops(s(4,fun.checkconflicts(jso[0]))),
-      err => {
-        setsprops(s(1,['Get Requests Failed']));
-        fun.generr('Failed to get Requests '+fun.BACKEND+url,err);
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,[errmsg]));
+      console.error(err);
     });
   }
 
   function lemp(){
     let url = 'lemp';
+    let errmsg = 'Get Users Failed';
     setsprops(s(1,['Retrieving Data...']));
 
     function mklist(usrs){
@@ -175,14 +174,16 @@ export default function Home(){
 
     fun.genreq('GET',url,null).then(
       jso => setsprops(s(2,mklist(jso[0]))),
-      err => {
-        setsprops(s(1,['Get Users Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+url,err);
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,[errmsg]));
+      console.error(err);
     });
   }
 
   function preqs(){
     let url = 'preqs'
+    let errmsg = 'Purge Failed';
     let conf = document.getElementById('i0').value
 
     if(conf !== 'PURGE')
@@ -191,9 +192,10 @@ export default function Home(){
       setsprops(s(1,['Purging...']));
       fun.genreq('POST',url,{checkphrase:conf}).then(
         jso => setsprops(s(1,['Requests Purged'])),
-        err => {
-          setsprops(s(1,['Purge Failed']));
-          fun.generr('JSON Error: '+fun.BACKEND+url,err)
+        err => {throw Error(errmsg,{cause:err});}
+      ).catch(err => {
+        setsprops(s(1,[errmsg]));
+        console.error(err);
       });
     }
   }
@@ -208,10 +210,12 @@ export default function Home(){
 
       fun.genreq('POST',url,{id:id}).then(
         jso => setsprops(s(1,['Request Deleted'])),
-        err => {
-         setsprops(s(1,[errmsg]));
-         fun.generr(errmsg+' '+fun.BACKEND+url,err);
-    });}
+        err => {throw Error(errmsg,{cause:err});}
+      ).catch(err => {
+          setsprops(s(1,[errmsg]));
+          console.error(err);
+      });
+    }
     else setsprops(s(1,['Failed: Empty String']));
   }
 
@@ -231,17 +235,13 @@ export default function Home(){
     if(uname && opass && npass && cpass && npass == cpass){
       Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey,npass)]).then(
         pas => fun.genreq('POST',url,{uname:uname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1])}),
-        err => {
-          console.error('Encryption failed');
-          throw err;
-      }).then(
+        err => {throw Error('Encryption failed',{cause:err});}
+      ).then(
         jso => mainpage(),
-        err => {
-          console.error('JSON error');
-          throw err;
-      }).catch(err => {
+        err => {throw Error(errmsg,{cause:err});}
+      ).catch(err => {
         setsprops(s(1,[errmsg]));
-        fun.generr(errmsg+' '+fun.BACKEND+url,err);
+        console.error(err);
       });
     }
     else setsprops(s(1,['Failed: Empty String or Mismatch']));
@@ -256,25 +256,25 @@ export default function Home(){
 
       fun.genreq('POST',url,{nuname:document.getElementById('i0').value}).then(
         jso => setsprops(s(1,['User Created'])),
-        err => {
-          setsprops(s(1,['Create User Failed']));
-          fun.generr('JSON Error '+fun.BACKEND+url,err);
-    });}
+        err => {throw Error('Create User Failed',{cause:err});}
+      ).catch(err => {
+        setsprops(s(1,['Create User Failed']));
+        console.error(err);
+      });
+    }
   }
 
   function duser(){
-    if(document.getElementById('i0').value === 'ptoboss'){
-      setsprops(s(1,['DUMME IDEE!']));
-      console.error('Attempted to delete admin');
-    }else{
-      let url = 'duser';
-      setsprops(s(1,'Deleting User...'));
-      fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
-        jso => setsprops(s(1,['User Deleted'])),
-        err => {
-          setsprops(s(1,['Delete User Failed']));
-          fun.generr('JSON Error: '+fun.BACKEND+url,err);
-    })}
+    let url = 'duser';
+    setsprops(s(1,'Deleting User...'));
+
+    fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
+      jso => setsprops(s(1,['User Deleted'])),
+      err => {throw Error('Delete User Failed',{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,['Delete User Failed']));
+      console.error(err);
+    });
   }
 
   function termconns(){
@@ -283,9 +283,10 @@ export default function Home(){
 
     fun.genreq('POST',url,{checkphrase:'reset'}).then(
       jso => loginpage(),
-      err => {
-        setsprops(s(1,['Reset Failed']));
-        fun.generr('JSON Error: '+fun.BACKEND+url,err);
+      err => {throw Error('Reset Failed',{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,['Reset Failed']));
+      console.error(err);
     });
   }
 
@@ -301,9 +302,10 @@ export default function Home(){
 
     fun.genreq('GET',url,null).then(
       jso => setsprops(s(4,mklist(jso[0]))),
-      err => {
-        setsprops(s(1,['Get Requests Failed']));
-        fun.generr('JSON Error '+fun.BACKEND+url,err);
+      err => {throw Error('',{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,['Get Requests Failed']));
+      console.error(err);
     });
   }
 
@@ -317,18 +319,19 @@ export default function Home(){
 
       fun.genreq('POST',url,{start:start,end:end}).then(
         jso => setsprops(s(1,['Request Submitted'])),
-        err => {
+        err => {throw Error('Request Submission Failed',{cause:err});}
+      ).catch(err => {
          setsprops(s(1,['Request Submission Failed']));
-         fun.generr('JSON Error: '+fun.BACKEND+url,err);
-    });}else
-     setsprops(s(1,['Failed: Empty String']));
+         console.error(err);
+      });
+    } else setsprops(s(1,['Failed: Empty String']));
   }
 
 /***
  E002 END BUTTON FUNCTIONS
  ***/
 
-  window.beforeunload = logout;
+  /*window.beforeunload = logout;*/
   
   return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
 }
