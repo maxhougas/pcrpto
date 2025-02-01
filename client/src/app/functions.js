@@ -1,7 +1,7 @@
 export const MIP = process.env.MIP || '172.17.0.2';
 export const NIP = process.env.NIP || 'localhost';
-export const PORT = process.env.PORT || 5000;
-export const BACKEND = 'http://'+NIP+':'+PORT+'/';
+export const PORT = process.env.PORT || 3000;
+export const BACKEND = '/'; //'http://'+NIP+':'+PORT+'/';
 
 /***
  E000 END CONSTANTS

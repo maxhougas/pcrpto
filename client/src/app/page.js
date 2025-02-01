@@ -29,10 +29,6 @@ export default function Home(){
  S001 START HELPER FUNCTIONS
  ***/
 
-  function testpair(){
-    fetch('http://localhost:5000/pair')
-  }
-
   function s(grid,status){
     return ({grid:grid,status:status});
   }
@@ -90,7 +86,7 @@ export default function Home(){
     let url = 'echo';
     setsprops(s(1,'Checking...'));
 
-    fun.genreq('POST',url,{echo:'echo'}).then(
+    fun.genreq('POST','echo',{echo:'echo'}).then(
       jso=> loginpage(),
       err=>{setsprops(s(1,'Back End Not Found')); throw Error(fun.BACKEND+url,{cause:err});}
     ).catch(err =>{
