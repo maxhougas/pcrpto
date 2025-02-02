@@ -1,6 +1,5 @@
 export const NIP = process.env.NIP || 'localhost';
 export const PORT = process.env.PORT || 5000;
-export const BACKEND = 'https://'+document.domain+':'+PORT+'/'; //document.URL.slice(0,document.URL.indexOf(':',6)+1)+PORT+'/'; //'http://'+NIP+':'+PORT+'/';
 
 /***
  E000 END CONSTANTS
@@ -24,7 +23,8 @@ export function tobase64(s){
 }
 
 export function genreq(m,u,b){
-  return fetch(BACKEND+u,{
+  console.log('https://'+document.domain+':'+PORT+'/'+u);
+  return fetch('https://'+document.domain+':'+PORT+'/'+u,{
     method:m,
     headers:{"Content-Type":"application/json"},
     body: m === 'POST' ? JSON.stringify(b) : null

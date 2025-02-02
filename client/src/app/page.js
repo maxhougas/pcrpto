@@ -11,7 +11,7 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
   const [iprops,setiprops] = React.useState(null);
   const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
-  React.useEffect(() => {
+/*  React.useEffect(() => {
     function tabclose(e){
       e.preventDefault();
       console.log('Logging out on tab closure');
@@ -22,7 +22,7 @@ export default function Home(){
 
     return () => {window.removeEventListener('beforeunload',tabclose);};
   }, []);
-
+*/
   let pkey;
 
 /***
@@ -88,7 +88,7 @@ export default function Home(){
 
     fun.genreq('POST',url,{echo:'echo'}).then(
       jso=> loginpage(),
-      err=>{setsprops(s(1,'Back End Not Found')); throw Error(fun.BACKEND+url,{cause:err});}
+      err=>{setsprops(s(1,'Back End Not Found')); throw Error(url+' failed',{cause:err});}
     ).catch(err =>{
       console.error(err);
     });
@@ -101,7 +101,7 @@ export default function Home(){
 
     fun.genreq('GET',url,null).then(
       jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
-      err => {throw Error(fun.BACKEND+url,{cause:err});}
+      err => {throw Error(url+' failed',{cause:err});}
     ).catch(err => {
       setsprops(s(1,errmsg));
       console.error(err);
@@ -123,7 +123,7 @@ export default function Home(){
       enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
       err => {throw Error('Encryption failed',{cause:err});}
     ).then(
-      jso => mainpage(),
+      jso => {window.addEventListener('beforeunload',logout);mainpage();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -327,7 +327,8 @@ export default function Home(){
  E002 END BUTTON FUNCTIONS
  ***/
 
-  /*window.beforeunload = logout;*/
+
+  //window.beforeunload = logout;
   
   return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
 }
