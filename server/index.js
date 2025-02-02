@@ -4,7 +4,7 @@ const express = require("express");
 const app = express();
 const https = require('https');
 const mysql = require("mysql2/promise");
-const { execSync } = require("child_process");
+//const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
 const fs = require('fs');
@@ -12,7 +12,7 @@ const fs = require('fs');
 const PORT = process.env.PORT || 5000;
 const MIP = process.env.MIP || '172.17.0.1';
 const NIP = process.env.NIP || "%";
-const CLIPATH = '/public/index.html'
+const CLIPATH = '/home/user/pcrpto/client/out/'
 
 /***
  S001 START NON-ROUTE MIDDLEWARE
@@ -21,9 +21,10 @@ const CLIPATH = '/public/index.html'
 app.use((req,res,next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');//'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-type');
+  //res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
 });
+app.use(express.static(CLIPATH));
 app.use(express.json());
 
 console.log('Non-route middleware configured');
@@ -125,10 +126,18 @@ console.log('Helper functions defined');
  S005 START PRODUCTION ROUTES
  ***/
 
+/*
 app.get("/", (req, res) => {
-  res.send('HELLO');
+  console.log(res);
+  res.sendFile('index.html',{root:CLIPATH});
   //res.redirect('../client/src/app/page.js');
 });
+*/
+
+/*app.get("/favicon.ico", (req, res) => {
+  res.sendFile('favicon.ico',{root:CLIPATH});
+});
+*/
 
 app.get("/getkey", (req, res) => {
   console.log('Key requested: '+req.ip);
