@@ -126,7 +126,8 @@ console.log('Helper functions defined');
  ***/
 
 app.get("/", (req, res) => {
-  res.redirect('../client/src/app/page.js');
+  res.send('HELLO');
+  //res.redirect('../client/src/app/page.js');
 });
 
 app.get("/getkey", (req, res) => {
@@ -388,16 +389,16 @@ console.log('Production routes registered');
  E005 END PRODUCTION ROUTES
  ***/
 
-const sslkey = fs.readFileSync('server-key.pem');
-const sslcert = fs.readFileSync('server-req.pem');
+const sslkey = fs.readFileSync('key.pem');
+const sslcert = fs.readFileSync('cert.pem');
 
-/*
-https.createServer({sslkey,sslcert},app).listen(PORT, () => {
+https.createServer({key:sslkey,cert:sslcert},app).listen(PORT, () => {
  console.log('Server listening on '+PORT);
 });
-*/
 
+
+/*
 app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
 });
-
+*/

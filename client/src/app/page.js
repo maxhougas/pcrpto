@@ -86,7 +86,7 @@ export default function Home(){
     let url = 'echo';
     setsprops(s(1,'Checking...'));
 
-    fun.genreq('POST','echo',{echo:'echo'}).then(
+    fun.genreq('POST',url,{echo:'echo'}).then(
       jso=> loginpage(),
       err=>{setsprops(s(1,'Back End Not Found')); throw Error(fun.BACKEND+url,{cause:err});}
     ).catch(err =>{
