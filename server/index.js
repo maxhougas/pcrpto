@@ -126,19 +126,6 @@ console.log('Helper functions defined');
  S005 START PRODUCTION ROUTES
  ***/
 
-/*
-app.get("/", (req, res) => {
-  console.log(res);
-  res.sendFile('index.html',{root:CLIPATH});
-  //res.redirect('../client/src/app/page.js');
-});
-*/
-
-/*app.get("/favicon.ico", (req, res) => {
-  res.sendFile('favicon.ico',{root:CLIPATH});
-});
-*/
-
 app.get("/getkey", (req, res) => {
   console.log('Key requested: '+req.ip);
 
