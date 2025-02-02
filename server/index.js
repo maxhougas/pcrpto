@@ -385,16 +385,6 @@ console.log('Production routes registered');
  E005 END PRODUCTION ROUTES
  ***/
 
-const sslkey = fs.readFileSync('key.pem');
-const sslcert = fs.readFileSync('cert.pem');
-
-https.createServer({key:sslkey,cert:sslcert},app).listen(PORT, () => {
+https.createServer({key:fs.readFileSync('key.pem'),cert:fs.readFileSync('cert.pem')},app).listen(PORT, () => {
  console.log('Server listening on '+PORT);
 });
-
-
-/*
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
-*/
