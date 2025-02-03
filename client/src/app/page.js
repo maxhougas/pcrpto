@@ -11,6 +11,16 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:1,status:['Willkommen']});
   const [iprops,setiprops] = React.useState({grid:2,type:['text','password'],itxt:['Username','Password']});
   const [bprops,setbprops] = React.useState({grid:1,handler:[login],btxt:['Log In']});
+  React.useEffect(() => {
+    const onBeforeUnload = e => {
+      e.preventDefault()
+      logout();
+      e.returnValue = 'A String';
+      return 'Another String';
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {window.removeEventListener("beforeunload", onBeforeUnload);};
+  }, []);
 
   let pkey;
 
@@ -100,7 +110,7 @@ export default function Home(){
       enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
       err => {throw Error('Encryption failed',{cause:err});}
     ).then(
-      jso => {window.addEventListener('beforeunload',logout);mainpage();},
+      jso => mainpage(),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -113,8 +123,8 @@ export default function Home(){
     let errmsg = 'Logout Failed';
     setsprops(s(1,['Logging Out...']));
 
-    fun.genreq('GET',url,null).then(
-      jso => {window.removeEventListener('beforeunload',logout);loginpage();},
+   fun.genreq('GET',url,null).then(
+      jso => loginpage(),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));

@@ -18,11 +18,12 @@ const CLIPATH = '/home/user/pcrpto/client/out/'
  ***/
 
 app.use((req,res,next) => {
-  //res.setHeader('Access-Control-Allow-Origin', '*');//'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Origin', 'https://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-  //res.setHeader('Access-Control-Allow-Headers', 'Content-type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
 });
+
 app.use(express.static(CLIPATH));
 app.use(express.json());
 
@@ -273,7 +274,7 @@ app.get("/vreqs",(req,res)=>{
     adm => sqs[i].query('SELECT * FROM pcr.pto'+ (adm ? '' : " WHERE empid = '"+sanitize(sqs[i].pool.config.connectionConfig.user)+"'")),
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({jso,err:null}),
+    jso => res.json({d:jso,err:null}),
     err => {throw Error('Get requests failed',{cause:err});}
   ).catch(err => {
     console.error(err);
