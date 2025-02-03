@@ -23,7 +23,6 @@ export function tobase64(s){
 }
 
 export function genreq(m,u,b){
-  console.log('https://'+document.domain+':'+PORT+'/'+u);
   return fetch('https://'+document.domain+':'+PORT+'/'+u,{
     method:m,
     headers:{"Content-Type":"application/json"},
@@ -66,11 +65,10 @@ export function checkconflicts(requests){
   for(let i=0; i<s.length; i++)
     for(let j=i+1; j<s.length; j++)
       if(
-        (s[i] < s[j] && s[j] < e[i]) ||
-        (s[i] < e[j] && e[j] < e[i]) ||
-        (s[j] < s[i] && s[i] < e[j]) ||
-        (s[j] < e[i] && e[i] < e[j]) ||
-        (s[i] == s[j] && e[i] == e[j])
+        (s[i] <= s[j] && s[j] <  e[i]) ||
+        (s[i] <  e[j] && e[j] <= e[i]) ||
+        (s[j] <= s[i] && s[i] <  e[j]) ||
+        (s[j] <  e[i] && e[i] <= e[j])
       ) c = c.concat(''+(i+1)+' & '+(j+1));
   return c;
 }

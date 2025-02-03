@@ -8,21 +8,10 @@ import * as fun from "./functions.js";
 
 export default function Home(){
 
-  const [sprops,setsprops] = React.useState({grid:'1fr',status:['Start']});
-  const [iprops,setiprops] = React.useState(null);
-  const [bprops,setbprops] = React.useState({grid:'1fr',handler:[cback],btxt:['Check Connection']})
-/*  React.useEffect(() => {
-    function tabclose(e){
-      e.preventDefault();
-      console.log('Logging out on tab closure');
-      logout();
-      return 'Logging Out';
-    }
-    window.addEventListener('beforeunload',tabclose);
+  const [sprops,setsprops] = React.useState({grid:1,status:['Willkommen']});
+  const [iprops,setiprops] = React.useState({grid:2,type:['text','password'],itxt:['Username','Password']});
+  const [bprops,setbprops] = React.useState({grid:1,handler:[login],btxt:['Log In']});
 
-    return () => {window.removeEventListener('beforeunload',tabclose);};
-  }, []);
-*/
   let pkey;
 
 /***
@@ -42,7 +31,7 @@ export default function Home(){
   function loginpage(){
     setsprops({grid:1,status:['Willkommen']});
     setiprops({grid:2,type:['text','password'],itxt:['Username','Password']});
-    setbprops({grid:2,handler:[login],btxt:['Log In']});
+    setbprops({grid:1,handler:[login],btxt:['Log In']});
   }
 
   function bossmode(){
@@ -81,18 +70,6 @@ export default function Home(){
  E001 END HELPER FUNCTIONS
  S002 START BUTTON FUNCTIONS
  ***/
-
-  function cback(){
-    let url = 'echo';
-    setsprops(s(1,'Checking...'));
-
-    fun.genreq('POST',url,{echo:'echo'}).then(
-      jso=> loginpage(),
-      err=>{setsprops(s(1,'Back End Not Found')); throw Error(url+' failed',{cause:err});}
-    ).catch(err =>{
-      console.error(err);
-    });
-  }
 
   function mainpage(){
     let url = 'whoami';
@@ -137,7 +114,7 @@ export default function Home(){
     setsprops(s(1,['Logging Out...']));
 
     fun.genreq('GET',url,null).then(
-      jso => loginpage(),
+      jso => {window.removeEventListener('beforeunload',logout);loginpage();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));

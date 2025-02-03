@@ -4,7 +4,6 @@ const express = require("express");
 const app = express();
 const https = require('https');
 const mysql = require("mysql2/promise");
-//const { execSync } = require("child_process");
 const crypto = require("crypto");
 const { Buffer } = require("buffer");
 const fs = require('fs');
@@ -19,7 +18,7 @@ const CLIPATH = '/home/user/pcrpto/client/out/'
  ***/
 
 app.use((req,res,next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');//'http://localhost:3000');
+  //res.setHeader('Access-Control-Allow-Origin', '*');//'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   //res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
@@ -163,7 +162,7 @@ app.post("/login", (req,res) => {
     jso => utype(i),
     err => {throw Error('Database connection failed',{cause:err});}
   ).then(
-    adm => res.json({mode:adm?'admin':'employee',err:null}),
+    adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
     console.error(Error('Login Failed',{cause:err}));
@@ -184,7 +183,7 @@ app.get("/logout", (req, res) => {
     console.log('Log out completed.');
   }
 
-  res.json({err:null});
+  res.json({d:null,err:null});
 });
 
 app.post("/reset",(req,res)=>{
@@ -195,7 +194,7 @@ app.post("/reset",(req,res)=>{
     ip => {if(ip) return utype(i); else throw Error('IP record not found');},
     err => {throw Error('Equality test should not fail');}
   ).then(
-    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); return res.json({err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
+    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); return res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
     console.error(Error('Reset failed',{cause:err}));
@@ -293,7 +292,7 @@ app.post("/spreq",(req,res)=>{
     adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (empid,startdate,enddate) values ('"+sanitize(sqs[i].pool.config.connectionConfig.user)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({err:null}),
+    jso => res.json({d:null,err:null}),
     err => {throw Error('Submission failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -312,7 +311,7 @@ app.post("/rpreq",(req,res)=>{
     ([adm,usr]) => {if(usr[0][0] && (usr[0][0].empid === sqs[i].pool.config.connectionConfig.user || adm)) return sqs[i].query('DELETE FROM pto WHERE ID = '+sanitize(req.body.id)); else throw Error('User mismatch');},
     err => {throw Error('User typing or sql failed',{cause:err});}
   ).then(
-    jso => res.json({err:null}),
+    jso => res.json({d:null,err:null}),
     err => {throw Error('Delete failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -331,7 +330,7 @@ app.post("/preqs",(req,res)=>{
     adm => {if(adm && req.body.checkphrase === 'PURGE') return sqs[i].query('TRUNCATE TABLE pto'); else throw Error('Nonadmin user or checkphrase mismatch');}, 
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({err:null}),
+    jso => res.json({d:null,err:null}),
     err => {throw Error('Purge failed');}
   ).catch(err => {
     console.error(err);
@@ -354,7 +353,7 @@ app.post("/cpass",(req,res)=>{
     pas => {if(pas[0] === sqs[i].pool.config.connectionConfig.password){sqs[sqs.length-1] = mysql.createPool(poolconf(req.body.uname,pas[1])); return sqs[i].query('set password for '+sanitize(req.body.uname)+"@'"+NIP+"' = password('"+sanitize(pas[1])+"')");} else throw Error('Bad password');},
     err => {throw Error('Decryption Failed',{cause:err});}
   ).then(
-    jso => {deleter(i);res.json(jso);},
+    jso => {deleter(i);res.json({d:jso,err:null});},
     err => {throw Error('Query Failed',err);}
   ).catch(err => {
     console.error(err);
@@ -371,7 +370,7 @@ app.get("/whoami",(req,res)=>{
     ip => {if(ip) return utype(i); else throw Error('IP record not found');},
     err => {throw Error('Equality test should not fail');}
   ).then(
-    adm => res.json({mode:adm?'admin':'employee',err:null}),
+    adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -385,6 +384,6 @@ console.log('Production routes registered');
  E005 END PRODUCTION ROUTES
  ***/
 
-https.createServer({key:fs.readFileSync('key.pem'),cert:fs.readFileSync('cert.pem')},app).listen(PORT, () => {
+https.createServer({key:fs.readFileSync('serverkey.pem'),passphrase:'deewee',cert:fs.readFileSync('servercrt.pem')},app).listen(PORT, () => {
  console.log('Server listening on '+PORT);
 });
