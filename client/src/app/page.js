@@ -11,22 +11,18 @@ export default function Home(){
   const [sprops,setsprops] = React.useState({grid:1,status:['Willkommen']});
   const [iprops,setiprops] = React.useState({grid:2,type:['text','password'],itxt:['Username','Password']});
   const [bprops,setbprops] = React.useState({grid:1,handler:[login],btxt:['Log In']});
-  React.useEffect(() => {
-    const onBeforeUnload = e => {
-      e.preventDefault()
-      logout();
-      e.returnValue = 'A String';
-      return 'Another String';
-    }
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => {window.removeEventListener("beforeunload", onBeforeUnload);};
-  }, []);
 
   let pkey;
 
 /***
  S001 START HELPER FUNCTIONS
  ***/
+
+ function closeHandle(e){
+   window.removeEventListener('beforeunload',closeHandle,false);
+   e.preventDefault();
+   logout();
+ }
 
   function s(grid,status){
     return ({grid:grid,status:status});
@@ -50,9 +46,9 @@ export default function Home(){
    setbprops({
      grid:3,
      handler:[ lemp,            cuser,        duser,        vreqs,          rpreq,
-               preqs,           conflicts,  cpasspage,        termconns,              logout],
+               preqs,           conflicts,  cpasspage,        mplan,       termconns,              logout],
      btxt:   ['List Employees','Create User','Delete User','View Requests','Remove Request',
-              'Purge Requests','Conflicts','Change Password','Terminate Connections','Log Out']
+              'Purge Requests','Conflicts','Change Password','Month Plan','Terminate Connections','Log Out']
    });
   }
 
@@ -110,7 +106,7 @@ export default function Home(){
       enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
       err => {throw Error('Encryption failed',{cause:err});}
     ).then(
-      jso => mainpage(),
+      jso => {window.addEventListener('beforeunload',closeHandle,false);mainpage();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -124,7 +120,7 @@ export default function Home(){
     setsprops(s(1,['Logging Out...']));
 
    fun.genreq('GET',url,null).then(
-      jso => loginpage(),
+      jso => {window.removeEventListener('beforeunload',closeHandle,false);loginpage();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -162,6 +158,17 @@ export default function Home(){
       setsprops(s(1,[errmsg]));
       console.error(err);
     });
+  }
+
+  function mplan(){
+    setsprops(s(3,['Sunday','Weekday','Saturday']));
+    setiprops(i(3,
+      ['time',        'time',         'time',          'time',     'time',       'time',      
+       'time',       'time',        'time',         'date'],
+      ['Sunday Start','Weekday Start','Saturday Start','Sunday SC','Weekday SC','Saturday SC',
+       'Sunday Ende','Weekday Ende','Saturday Ende','Start Date']
+    ));
+    setbprops(b(3,[()=>{console.log(document.getElementById('i0').value, document.getElementById('i9').value);},mainpage,logout],['Print Format','Back','Log Out']));
   }
 
   function preqs(){
@@ -273,30 +280,11 @@ export default function Home(){
     });
   }
 
-  function vreqs(){
-    let url = 'vreqs';
-    setsprops(s(1,['Getting Requests...']));
-
-    function mklist(jso){
-      let lst = ['Request ID','Employee ID','Start','End'];
-      jso.forEach(e => lst = lst.concat([e.id,e.empid,fun.fixtime(e.startdate),fun.fixtime(e.enddate)]));
-      return(lst);
-    }
-
-    fun.genreq('GET',url,null).then(
-      jso => setsprops(s(4,mklist(jso[0]))),
-      err => {throw Error('',{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,['Get Requests Failed']));
-      console.error(err);
-    });
-  }
-
   function spreq(){
     let start = document.getElementById('i0').value
     let end = document.getElementById('i1').value
 
-    if((start) && (end)){
+    if((start) && (end) && Date.parse(start) < Date.parse(end)){
       let url = 'spreq'
       setsprops(s(1,['Submitting...']));
 
@@ -307,7 +295,26 @@ export default function Home(){
          setsprops(s(1,['Request Submission Failed']));
          console.error(err);
       });
-    } else setsprops(s(1,['Failed: Empty String']));
+    } else setsprops(s(1,['Failed: Empty String or Invalid Range']));
+  }
+
+  function vreqs(){
+    let url = 'vreqs';
+    setsprops(s(1,['Getting Requests...']));
+
+    function mklist(jso){
+      let lst = ['Request ID','Employee ID','Start (D-M-Y H:M)','End (D-M-Y H:M)'];
+      jso.forEach((e,i) => lst = lst.concat([e.id,e.empid,fun.yurptime(e.startdate),fun.yurptime(e.enddate)]));
+      return(lst);
+    }
+
+    fun.genreq('GET',url,null).then(
+      jso => setsprops(s(4,mklist(jso[0]))),
+      err => {throw Error('',{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,['Get Requests Failed']));
+      console.error(err);
+    });
   }
 
 /***

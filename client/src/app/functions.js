@@ -1,5 +1,4 @@
-export const NIP = process.env.NIP || 'localhost';
-export const PORT = process.env.PORT || 5000;
+export const PORT = 5000;
 
 /***
  E000 END CONSTANTS
@@ -14,8 +13,16 @@ export function stretch(g,n,i){
   return i>=Math.floor(n/g)*g?'1 / '+(g+1):'auto';
 }
 
-export function fixtime(t){
-  return (t.slice(0,-7).replace(/[:-]/g,'').replace('T',' '));
+export function miltime(t){
+  return t.slice(0,-8).replace('T',' ');
+}
+
+export function yurptime(t){
+  return t.slice(8,10)+t.slice(4,8)+t.slice(0,4)+' '+t.slice(11,13)+t.slice(13,16);
+}
+
+export function numtime(t){
+  return Number(t.slice(0,-8).replace(/[:T-]/g,''));
 }
 
 export function tobase64(s){
@@ -57,19 +64,24 @@ export function encrypt(k,pass){
   return crypto.subtle.encrypt({name:'RSA-OAEP'},k,Buffer.from(pass));
 }
 
+export function doesconflict(s0,s1,e0,e1){
+  return(
+    (s0 <= s1 && s1 <  e0) ||
+    (s0 <  e1 && e1 <= e0) ||
+    (s1 <= s0 && s0 <  e1) ||
+    (s1 <  e0 && e0 <= e1)
+  );
+}
+
 export function checkconflicts(requests){
-  let s = requests.map(el => Number(fixtime(el.startdate).replace(' ','')));
-  let e = requests.map(el => Number(fixtime(el.enddate).replace(' ','')));
+  let s = requests.map(el => Date.parse(el.startdate));
+  let e = requests.map(el => Date.parse(el.enddate));
   let c = [];
 
   for(let i=0; i<s.length; i++)
     for(let j=i+1; j<s.length; j++)
-      if(
-        (s[i] <= s[j] && s[j] <  e[i]) ||
-        (s[i] <  e[j] && e[j] <= e[i]) ||
-        (s[j] <= s[i] && s[i] <  e[j]) ||
-        (s[j] <  e[i] && e[i] <= e[j])
-      ) c = c.concat(''+(i+1)+' & '+(j+1));
+      if(doesconflict(s[i],s[j],e[i],e[j]))
+        c = c.concat(''+requests[i].id+' & '+requests[j].id);
   return c;
 }
 

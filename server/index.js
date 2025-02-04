@@ -10,7 +10,8 @@ const fs = require('fs');
 
 const PORT = process.env.PORT || 5000;
 const MIP = process.env.MIP || '172.17.0.1';
-const NIP = process.env.NIP || "%";
+const MPORT = process.env.MPORT || '3306';
+const NIP = process.env.NIP || '%';
 const CLIPATH = '/home/user/pcrpto/client/out/'
 
 /***
@@ -18,7 +19,7 @@ const CLIPATH = '/home/user/pcrpto/client/out/'
  ***/
 
 app.use((req,res,next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://localhost:3000');
+  res.setHeader('Access-Control-Allow-Origin', '*');// 'https://10.0.1.49:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
@@ -51,7 +52,7 @@ function poolconf(uname,pass){
     host: MIP,
     user: uname,
     password: pass,
-    port: "3306",
+    port: MPORT,
     database: "pcr"
   };
 }
@@ -249,10 +250,10 @@ app.post("/duser",(req,res)=>{
     ip => {if(ip) return utype(i); else throw Error('IP record not found');},
     err => {throw Error('Equality test should not fail');}
   ).then(
-    adm => {if(adm) return sqs[i].query('SHOW GRANTS FOR '+sanitize(sqs[i].pool.config.connectionConfig.user)+"@'"+NIP+"'"); else throw Error('Nonadmin user');},
+    adm => {if(adm) return sqs[i].query('SHOW GRANTS FOR '+sanitize(req.body.uname)+"@'"+NIP+"'"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    grs => {if(grs[0][0]['Grants for '+sanitize(req.body.user)+'@'+NIP].includes('GRANT CREATE USER')) throw Error('Delete admin blocked'); else return sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.uname));},
+    grs => {if(grs[0][0]['Grants for '+sanitize(req.body.uname)+'@'+NIP].includes('GRANT CREATE USER')) throw Error('Delete admin blocked'); else return sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.uname));},
     err => {throw Error('User typing failed (duser)',{cause:err});}
   ).then(
     jso => res.json({d:jso,err:null}),
