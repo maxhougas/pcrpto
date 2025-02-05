@@ -19,7 +19,7 @@ const CLIPATH = '/home/user/pcrpto/client/out/'
  ***/
 
 app.use((req,res,next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');// 'https://10.0.1.49:3000');
+  res.setHeader('Access-Control-Allow-Origin', 'https://10.0.1.49:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
@@ -110,6 +110,20 @@ function dec(i,b){
   ));
 }
 
+function currentuser(req){
+  if(ips.indexOf(req.ip) === -1)
+    throw Error('User is not logged in');
+  else
+    return sqs[ips.indexOf(req.ip)].pool.config.connectionConfig.user;
+}
+
+function isadmin(i,empid){
+  return sqs[i].query("SELECT isadmin FROM employees WHERE id = '"+empid+"'").then(
+    jso => Promise.resolve(jso[0][0].isadmin),
+    err => {throw Error('Query failed'),{cause:err};}
+  );
+}
+
 function utype(i){
   let el = 'Grants for '+sanitize(sqs[i].pool.config.connectionConfig.user)+'@';
 
@@ -137,6 +151,8 @@ app.get("/getkey", (req, res) => {
   }
   i = ips.length;  
   ips[i] = req.ip; 
+  iks[i] = '.';
+  sqs[i] = '.';
 
   mkeys().then(
     kp => {iks[i]=kp.privateKey;return exp(kp.publicKey);},
@@ -156,13 +172,11 @@ app.post("/login", (req,res) => {
   let i = ips.indexOf(req.ip);
 
   dec(i,Buffer.from(req.body.pass,'base64')).then(
-    pas => {
-      sqs[i] = mysql.createPool(poolconf(req.body.uname,pas));
-      return sqs[i].query('show tables;');
-    },err => {throw Error('Decrypt failed',{cause:err});}
+    pas => sqs[i] = mysql.createPool(poolconf(sanitize(req.body.uname),sanitize(pas))),
+    err => {throw Error('Decrypt failed',{cause:err});}
   ).then(
-    jso => utype(i),
-    err => {throw Error('Database connection failed',{cause:err});}
+    jso => isadmin(i,currentuser(req)),
+    err => {throw Error('Create pool failed',{cause:err});}
   ).then(
     adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
     err => {throw Error('User typing failed',{cause:err});}
@@ -188,15 +202,12 @@ app.get("/logout", (req, res) => {
   res.json({d:null,err:null});
 });
 
-app.post("/reset",(req,res)=>{
+app.post("/reset", (req,res) => {
   console.log('Reset request: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); return res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
     console.error(Error('Reset failed',{cause:err}));
@@ -208,14 +219,11 @@ app.get("/lemp",(req,res)=>{
   console.log('List employees request from '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => {;if(adm) return sqs[i].query("SELECT user FROM mysql.user WHERE user NOT IN ('maria','mariadb.sys','root')"); else throw Error('Nonadmin user');},
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) return sqs[i].query("SELECT id FROM employees WHERE isadmin = FALSE"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({d:jso,err:null}),
+    jso => res.json({d:jso[0],err:null}),
     err => {throw Error('Get users failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -227,15 +235,15 @@ app.post("/cuser",(req,res)=>{
   console.log('Create user request from '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => {if(adm) return sqs[i].query("GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+sanitize(req.body.nuname)+"@'%' IDENTIFIED BY 'default'"); else throw Error('Nonadmin user');},
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) return sqs[i].query("GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+sanitize(req.body.nuname)+"@'"+NIP+"' IDENTIFIED BY 'default'"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({d:jso,err:null}),
-    err => {throw Error('Create failed',{cause:err});}
+    jso => sqs[i].query("INSERT INTO employees (id) VALUES ('"+sanitize(req.body.nuname)+"')"),
+    err => {throw Error('Creat pt 1 failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.nuname)); throw Error('Create pt 2 failed',{cause:err});}
   ).catch(err => {
     console.error(err);
     res.json({err:err});
@@ -246,18 +254,18 @@ app.post("/duser",(req,res)=>{
   console.log('Delete user: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => {if(adm) return sqs[i].query('SHOW GRANTS FOR '+sanitize(req.body.uname)+"@'"+NIP+"'"); else throw Error('Nonadmin user');},
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) return isadmin(i,sanitize(req.body.uname)); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    grs => {if(grs[0][0]['Grants for '+sanitize(req.body.uname)+'@'+NIP].includes('GRANT CREATE USER')) throw Error('Delete admin blocked'); else return sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.uname));},
+    adm => {if(adm) throw Error('Delete admin blocked'); else return sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.uname));},
     err => {throw Error('User typing failed (duser)',{cause:err});}
   ).then(
-    jso => res.json({d:jso,err:null}),
-    err => {throw Error('Delete failed',{cause:err});}
+    jso => sqs[i].query("DELETE FROM employees WHERE id = '"+sanitize(req.body.uname)+"'"),
+    err => {throw Error('Delete pt 1 failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Delete pt 2 failed',{cause:err});}
   ).catch(err => {
     console.error(err);
     res.json({err:err});
@@ -268,14 +276,11 @@ app.get("/vreqs",(req,res)=>{
   console.log('List pto requests: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => sqs[i].query('SELECT * FROM pcr.pto'+ (adm ? '' : " WHERE empid = '"+sanitize(sqs[i].pool.config.connectionConfig.user)+"'")),
+  isadmin(i,currentuser(req)).then(
+    adm => sqs[i].query('SELECT * FROM pcr.pto'+ (adm ? '' : " WHERE empid = '"+currentuser(req)+"'")),
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({d:jso,err:null}),
+    jso => res.json({d:jso[0],err:null}),
     err => {throw Error('Get requests failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -287,11 +292,8 @@ app.post("/spreq",(req,res)=>{
   console.log('Submit pto request: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (empid,startdate,enddate) values ('"+sanitize(sqs[i].pool.config.connectionConfig.user)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (empid,startdate,enddate) values ('"+currentuser(req)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
@@ -306,11 +308,12 @@ app.post("/rpreq",(req,res)=>{
   console.log('Delete pto request: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return Promise.all([utype(i), sqs[i].query('SELECT empid FROM pto WHERE id = '+sanitize(req.body.id))]); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    ([adm,usr]) => {if(usr[0][0] && (usr[0][0].empid === sqs[i].pool.config.connectionConfig.user || adm)) return sqs[i].query('DELETE FROM pto WHERE ID = '+sanitize(req.body.id)); else throw Error('User mismatch');},
+console.log(req.body.id);
+console.log(sanitize(req.body.id));
+console.log('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+" AND empid = '"+currentuser(req)+"'");
+
+  isadmin(i,currentuser(req)).then(
+    (adm) => sqs[i].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(adm?'':" AND empid = '"+currentuser(req)+"'")),
     err => {throw Error('User typing or sql failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
@@ -325,15 +328,12 @@ app.post("/preqs",(req,res)=>{
   console.log('Purge requests: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
+  isadmin(i,currentuser(req)).then(
     adm => {if(adm && req.body.checkphrase === 'PURGE') return sqs[i].query('TRUNCATE TABLE pto'); else throw Error('Nonadmin user or checkphrase mismatch');}, 
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
-    err => {throw Error('Purge failed');}
+    err => {throw Error('Purge failed',{cause:err});}
   ).catch(err => {
     console.error(err);
     res.json({err:err});
@@ -348,14 +348,17 @@ app.post("/cpass",(req,res)=>{
   iks[iks.length] = iks[i];
   sqs[sqs.length] = '';
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return Promise.all([dec(i,Buffer.from(req.body.opass,'base64')),dec(i,Buffer.from(req.body.npass,'base64'))]); else throw Error('IP record not found');},
+  Promise.resolve(i !== -1 && currentuser(req) === req.body.uname).then(
+    ip => {if(ip) return Promise.all([dec(i,Buffer.from(req.body.opass,'base64')),dec(i,Buffer.from(req.body.npass,'base64'))]); else throw Error('User name mismatch or IP record not found');},
     err => {throw Error('Equality test should not fail');}
   ).then(
-    pas => {if(pas[0] === sqs[i].pool.config.connectionConfig.password){sqs[sqs.length-1] = mysql.createPool(poolconf(req.body.uname,pas[1])); return sqs[i].query('set password for '+sanitize(req.body.uname)+"@'"+NIP+"' = password('"+sanitize(pas[1])+"')");} else throw Error('Bad password');},
+    pas => {if(pas[0] === sqs[i].pool.config.connectionConfig.password) return Promise.all([sqs[i].query('SET PASSWORD FOR '+currentuser(req)+"@'"+NIP+"' = password('"+sanitize(pas[1])+"')"),Promise.resolve(pas[1])]); else throw Error('Bad password');},
     err => {throw Error('Decryption Failed',{cause:err});}
   ).then(
-    jso => {deleter(i);res.json({d:jso,err:null});},
+    pas => sqs[i] = mysql.createPool(poolconf(currentuser(req),pas[1])),
+    err => {throw Error('Query failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
     err => {throw Error('Query Failed',err);}
   ).catch(err => {
     console.error(err);
@@ -368,10 +371,7 @@ app.get("/whoami",(req,res)=>{
   console.log('Who is: '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  Promise.resolve(i !== -1).then(
-    ip => {if(ip) return utype(i); else throw Error('IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
+  isadmin(i,currentuser(req)).then(
     adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {

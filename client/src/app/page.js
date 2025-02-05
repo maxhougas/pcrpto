@@ -62,7 +62,7 @@ export default function Home(){
     setbprops({
       grid:2,
       handler:[ spreq,           rpreq,           vreqs,          cpasspage,        logout],
-      btxt:['Submit Request','Revoke Request','View Requests','Change Password','Log Out']
+      btxt:   ['Submit Request','Revoke Request','View Requests','Change Password','Log Out']
     });
   }
 
@@ -148,11 +148,11 @@ export default function Home(){
     setsprops(s(1,['Retrieving Data...']));
 
     function mklist(usrs){
-      return usrs.map(e => e.User);
+      return usrs.map(e => e.id);
     }
 
     fun.genreq('GET',url,null).then(
-      jso => setsprops(s(2,mklist(jso[0]))),
+      jso => setsprops(s(2,mklist(jso))),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -309,7 +309,7 @@ export default function Home(){
     }
 
     fun.genreq('GET',url,null).then(
-      jso => setsprops(s(4,mklist(jso[0]))),
+      jso => setsprops(s(4,mklist(jso))),
       err => {throw Error('',{cause:err});}
     ).catch(err => {
       setsprops(s(1,['Get Requests Failed']));
