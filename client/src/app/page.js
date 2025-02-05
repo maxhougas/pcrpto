@@ -160,6 +160,14 @@ export default function Home(){
     });
   }
 
+  function load(store){
+    
+  }
+
+  function loaddatteln(){
+    load('datteln');
+  }
+
   function mplan(){
     setsprops(s(3,['Sunday','Weekday','Saturday']));
     setiprops(i(3,
@@ -168,7 +176,7 @@ export default function Home(){
       ['Sunday Start','Weekday Start','Saturday Start','Sunday SC','Weekday SC','Saturday SC',
        'Sunday Ende','Weekday Ende','Saturday Ende','Start Date']
     ));
-    setbprops(b(3,[()=>{console.log(document.getElementById('i0').value, document.getElementById('i9').value);},mainpage,logout],['Print Format','Back','Log Out']));
+    setbprops(b(3,[loaddatteln,mainpage,logout],['Load Datteln','Back','Log Out']));
   }
 
   function preqs(){
