@@ -304,7 +304,7 @@ export default function Home(){
 
     function mklist(jso){
       let lst = ['Request ID','Employee ID','Start (D-M-Y H:M)','End (D-M-Y H:M)'];
-      jso.forEach((e,i) => lst = lst.concat([e.id,e.empid,fun.yurptime(e.startdate),fun.yurptime(e.enddate)]));
+      jso.forEach((e,i) => lst = lst.concat([e.id,e.emp,fun.yurptime(e.startdate),fun.yurptime(e.enddate)]));
       return(lst);
     }
 
