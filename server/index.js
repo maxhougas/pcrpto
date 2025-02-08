@@ -35,10 +35,17 @@ console.log('Non-route middleware configured');
  S002 START DEBUG ROUTES
  ***/
 
+/*
 app.post("/echo", (req,res) => {
-  console.log('API POST echo request: '+req.ip);
+  console.log('POST echo request: '+req.ip);
   res.json({d:req.body,err:null});
 });
+
+app.get("/echo", (req,res) => {
+  console.log('GET echo request: '+req.ip);
+  res.json({d:'echo',err:null});
+});
+*/
 
 console.log('Debug routes registered');
 
@@ -83,7 +90,8 @@ function purger(){
 }
 
 function sanitize(q) {
-  return q.replaceAll(" ","_");
+  if(q) return q.replaceAll(" ","_");
+  else throw Error('Empty String');
 };
 
 function mkeys(){
@@ -118,20 +126,23 @@ function currentuser(req){
 }
 
 function isadmin(i,empid){
-  return sqs[i].query("SELECT isadmin FROM employees WHERE id = '"+empid+"'").then(
-    jso => Promise.resolve(jso[0][0].isadmin),
-    err => {throw Error('Query failed'),{cause:err};}
+
+  return sqs[i].query("SELECT user FROM mysql.user WHERE user = '"+sanitize(empid)+"' AND default_role = 'ptoadmin'").then(
+    jso => jso[0].toString(),
+    err => {throw Error('Query failed',{cause:err});}
   );
+
+/*  return sqs[i].query("SELECT isadmin FROM employees WHERE id = '"+empid+"'").then(
+    jso => Promise.resolve(jso[0][0].isadmin),
+    err => {throw Error('Query failed',{cause:err});}
+  );
+*/
 }
 
-function utype(i){
-  let el = 'Grants for '+sanitize(sqs[i].pool.config.connectionConfig.user)+'@';
-
-  return(
-    sqs[i].query('show '+el+"'"+NIP+"'").then(
-      grs => grs[0][0][el+NIP].includes('GRANT CREATE USER'),
-      err => {throw Error('Query failed',{cause,err});}
-  ));
+function estackstring(err){
+  let estring = '';
+  for(let errcomp=err;errcomp;errcomp=errcomp.cause) estring = estring+errcomp.toString()+' -> ';
+  return estring.slice(0,-4);
 }
 
 console.log('Helper functions defined');
@@ -163,7 +174,7 @@ app.get("/getkey", (req, res) => {
   ).catch(err =>{
     console.error(err);
     deleter(i);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 }); 
 
@@ -181,12 +192,11 @@ app.post("/login", (req,res) => {
     adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
-    console.error(Error('Login Failed',{cause:err}));
+    console.error(err);
     deleter(i);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
-
 
 app.get("/logout", (req, res) => {
   console.log('Logout request '+req.ip);
@@ -202,32 +212,29 @@ app.get("/logout", (req, res) => {
   res.json({d:null,err:null});
 });
 
-app.post("/reset", (req,res) => {
-  console.log('Reset request: '+req.ip);
-  let i = ips.indexOf(req.ip);
+app.post("/cpass",(req,res)=>{
+  console.log('Change password: '+req.ip);
+  let i = ips.indexOf(req.ip)
 
-  isadmin(i,currentuser(req)).then(
-    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).catch(err => {
-    console.error(Error('Reset failed',{cause:err}));
-    res.json({err:err});
-  });
-});
+  ips[ips.length] = ips[i];
+  iks[iks.length] = iks[i];
+  sqs[sqs.length] = '';
 
-app.get("/lemp",(req,res)=>{
-  console.log('List employees request from '+req.ip);
-  let i = ips.indexOf(req.ip);
-
-  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return sqs[i].query("SELECT id FROM employees WHERE isadmin = FALSE"); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
+  Promise.resolve(i !== -1 && currentuser(req) === req.body.uname).then(
+    ip => {if(ip) return Promise.all([dec(i,Buffer.from(req.body.opass,'base64')),dec(i,Buffer.from(req.body.npass,'base64')),dec(i,Buffer.from(req.body.cpass,'base64'))]); else throw Error('User name mismatch or IP record not found');},
+    err => {throw Error('Equality test should not fail');}
   ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get users failed',{cause:err});}
+    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && pas[0] === sqs[i].pool.config.connectionConfig.password) return pas[1]; else throw Error('Password mismatch');},
+    err => {throw Error('Decryption Failed',{cause:err});}
+  ).then(
+    pas => Promise.all([sqs[i].query('SET PASSWORD FOR '+currentuser(req)+"@'"+NIP+"' = password('"+sanitize(pas)+"')"),sqs[i] = mysql.createPool(poolconf(currentuser(req),pas))]),
+    err => {throw Error('Equality test should not fail',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Query or pool creation failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
@@ -235,18 +242,21 @@ app.post("/cuser",(req,res)=>{
   console.log('Create user request from '+req.ip);
   let i = ips.indexOf(req.ip);
 
-  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return sqs[i].query("GRANT INSERT,SELECT,DELETE ON pcr.pto TO "+sanitize(req.body.nuname)+"@'"+NIP+"' IDENTIFIED BY 'default'"); else throw Error('Nonadmin user');},
+   isadmin(i,currentuser(req)).then(
+    adm => {if(adm) return sqs[i].query("GRANT employee TO "+sanitize(req.body.nuname)+"@'"+NIP+"' IDENTIFIED BY 'default'"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => sqs[i].query("INSERT INTO employees (id) VALUES ('"+sanitize(req.body.nuname)+"')"),
-    err => {throw Error('Creat pt 1 failed',{cause:err});}
+    jso => sqs[i].query("SET DEFAULT ROLE employee FOR "+sanitize(req.body.nuname)),
+    err => {throw Error('Create user / assign role failed',{cause:err});}
+  ).then(
+    jso => sqs[i].query("INSERT INTO pcr.employees (id) SELECT user FROM mysql.user WHERE user = '"+sanitize(req.body.nuname)+"'"),
+    err => {throw Error('Set role failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
-    err => {sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.nuname)); throw Error('Create pt 2 failed',{cause:err});}
+    err => {throw Error('Mirroring failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
@@ -262,65 +272,45 @@ app.post("/duser",(req,res)=>{
     err => {throw Error('User typing failed (duser)',{cause:err});}
   ).then(
     jso => sqs[i].query("DELETE FROM employees WHERE id = '"+sanitize(req.body.uname)+"'"),
-    err => {throw Error('Delete pt 1 failed',{cause:err});}
+    err => {throw Error('Delete failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete pt 2 failed',{cause:err});}
+    err => {throw Error('Delete mirror failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
-app.get("/vreqs",(req,res)=>{
-  console.log('List pto requests: '+req.ip);
+app.get("/lemp",(req,res)=>{
+  console.log('List employees: '+req.ip);
   let i = ips.indexOf(req.ip);
 
   isadmin(i,currentuser(req)).then(
-    adm => sqs[i].query('SELECT * FROM pcr.pto'+ (adm ? '' : " WHERE empid = '"+currentuser(req)+"'")),
+    adm => {if(adm) return sqs[i].query("SELECT user FROM mysql.user WHERE default_role = 'employee'"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
     jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get requests failed',{cause:err});}
+    err => {throw Error('Get users failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
-app.post("/spreq",(req,res)=>{
-  console.log('Submit pto request: '+req.ip);
+app.post("/loadshifts",(req,res)=>{
+  console.log('Load shifts: '+req.ip);
   let i = ips.indexOf(req.ip);
 
   isadmin(i,currentuser(req)).then(
-    adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (empid,startdate,enddate) values ('"+currentuser(req)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
+    adm => {if (adm) return sqs[i].query("SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'"); else throw Error('Nonadmin user');},
     err => {throw Error('User typing failed',{cause:err});}
   ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Submission failed',{cause:err});}
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('Get shifts failed',{cause:err});}
   ).catch(err => {
+    res.json({err:estackstring(err)});
     console.error(err);
-    res.json({err:err});
-  });
-});
-
-app.post("/rpreq",(req,res)=>{
-  console.log('Delete pto request: '+req.ip);
-  let i = ips.indexOf(req.ip);
-
-console.log(req.body.id);
-console.log(sanitize(req.body.id));
-console.log('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+" AND empid = '"+currentuser(req)+"'");
-
-  isadmin(i,currentuser(req)).then(
-    (adm) => sqs[i].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(adm?'':" AND empid = '"+currentuser(req)+"'")),
-    err => {throw Error('User typing or sql failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:err});
   });
 });
 
@@ -336,34 +326,84 @@ app.post("/preqs",(req,res)=>{
     err => {throw Error('Purge failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
-app.post("/cpass",(req,res)=>{
-  console.log('Change password: '+req.ip);
-  let i = ips.indexOf(req.ip)
+app.post("/reset", (req,res) => {
+  console.log('Reset request: '+req.ip);
+  let i = ips.indexOf(req.ip);
 
-  ips[ips.length] = ips[i];
-  iks[iks.length] = iks[i];
-  sqs[sqs.length] = '';
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm && req.body.checkphrase === 'reset') {purger(); res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
+    err => {throw Error('User typing failed',{cause:err});}
+  ).catch(err => {
+    console.error(Error('Reset failed',{cause:err}));
+    res.json({err:estackstring(err)});
+  });
+});
 
-  Promise.resolve(i !== -1 && currentuser(req) === req.body.uname).then(
-    ip => {if(ip) return Promise.all([dec(i,Buffer.from(req.body.opass,'base64')),dec(i,Buffer.from(req.body.npass,'base64'))]); else throw Error('User name mismatch or IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    pas => {if(pas[0] === sqs[i].pool.config.connectionConfig.password) return Promise.all([sqs[i].query('SET PASSWORD FOR '+currentuser(req)+"@'"+NIP+"' = password('"+sanitize(pas[1])+"')"),Promise.resolve(pas[1])]); else throw Error('Bad password');},
-    err => {throw Error('Decryption Failed',{cause:err});}
-  ).then(
-    pas => sqs[i] = mysql.createPool(poolconf(currentuser(req),pas[1])),
-    err => {throw Error('Query failed',{cause:err});}
+app.post("/rpreq",(req,res)=>{
+  console.log('Delete pto request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+
+  isadmin(i,currentuser(req)).then(
+    adm => sqs[i].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(adm?'':" AND empid = '"+currentuser(req)+"'")),
+    err => {throw Error('User typing failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
-    err => {throw Error('Query Failed',err);}
+    err => {throw Error('Delete failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    deleter(ips.length);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/saveshifts",(req,res)=>{
+  console.log('Save shifts: '+req.ip);
+  let i = ips.indexOf(req.ip);
+
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) return sqs[i].query("REPLACE INTO stores (id,ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send) VALUES('"+req.body.shifts.toString()+"')"); else throw Error('Nonadmin user');},
+    err => {throw Error('User typing failed',{cause:'err'});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Save failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/spreq",(req,res)=>{
+  console.log('Submit pto request: '+req.ip);
+  let i = ips.indexOf(req.ip);
+
+  isadmin(i,currentuser(req)).then(
+    adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (emp,startdate,enddate) values ('"+currentuser(req)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
+    err => {throw Error('User typing failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Submission failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.get("/vreqs",(req,res)=>{
+  console.log('List pto requests: '+req.ip);
+  let i = ips.indexOf(req.ip);
+
+  isadmin(i,currentuser(req)).then(
+    adm => sqs[i].query('SELECT * FROM pcr.pto'+ (adm?'':" WHERE emp = '"+currentuser(req)+"'")),
+    err => {throw Error('User typing failed',{cause:err});}
+  ).then(
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('Get requests failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
   });
 });
 
@@ -376,7 +416,7 @@ app.get("/whoami",(req,res)=>{
     err => {throw Error('User typing failed',{cause:err});}
   ).catch(err => {
     console.error(err);
-    res.json({err:err});
+    res.json({err:estackstring(err)});
   });
 });
 
@@ -387,5 +427,5 @@ console.log('Production routes registered');
  ***/
 
 https.createServer({key:fs.readFileSync('serverkey.pem'),passphrase:'deewee',cert:fs.readFileSync('servercrt.pem')},app).listen(PORT, () => {
- console.log('Server listening on '+PORT);
+  console.log('Server listening on '+PORT);
 });

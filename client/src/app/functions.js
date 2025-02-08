@@ -13,12 +13,29 @@ export function stretch(g,n,i){
   return i>=Math.floor(n/g)*g?'1 / '+(g+1):'auto';
 }
 
+export function stripsec(t){
+  return t.slice(0,16);
+}
+
 export function miltime(t){
   return t.slice(0,-8).replace('T',' ');
 }
-
 export function yurptime(t){
   return t.slice(8,10)+t.slice(4,8)+t.slice(0,4)+' '+t.slice(11,13)+t.slice(13,16);
+}
+export function tfromd(d){
+  return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+' '+d.getHours()+' '+d.getMinutes();
+}
+export function datefromn(n){
+  let d = new Date(n);
+  return Number(d.getFullYear()+d.getMonth()+d.getDate());
+}
+export function yurpdatefromn(n){
+  let d = new Date(n);
+  return d.getDate()+'-'+d.getMonth()+'-'+d.getFullYear();
+}
+export function datefroms(t){
+  return s.sclice(0,10).replaceAll(s.charAt(4),'');
 }
 
 export function numtime(t){
@@ -38,7 +55,7 @@ export function genreq(m,u,b){
     res => res.json(),
     err => {throw Error('Connection Failed',{cause:err});}
   ).then(
-    jso => {if(jso.err) throw Error('Error from server',{cause:jso.err}); else  return jso.d?jso.d:jso;},
+    jso => {if(jso.err) throw Error('Error from server',{cause:jso.err}); else return jso.d?jso.d:jso;},
     err => {throw Error('JSON parse failed',{cause:err});}
   );
 }
@@ -83,6 +100,49 @@ export function checkconflicts(requests){
       if(doesconflict(s[i],s[j],e[i],e[j]))
         c = c.concat(''+requests[i].id+' & '+requests[j].id);
   return c;
+}
+
+export function genshifts(defaults,start){
+  const day = 86400000;
+
+  function dow(t){
+    let d = new Date(t);
+    return d.getDay()==0?0:(d.getDay==6?2:1);
+  }
+
+  let out = [];
+  for(let i = 0;i<35;i++){
+    let dowcode = dow(Number(Date.parse(start))+i*day);
+    let sstart = Date.parse(start+'T'+defaults[dowcode  ])+i*day;
+    let sc     = Date.parse(start+'T'+defaults[dowcode+3])+i*day;
+    let send   = Date.parse(start+'T'+defaults[dowcode+6])+i*day;
+    sc   += sstart < sc   ? 0 : day;
+    send += sstart < send ? 0 : day;
+
+    out = out.concat([[sstart,sc,send]]);
+  }
+
+  return out;
+}
+
+export function shiftconfs(shifts,ptos){
+  let conflicts = [];
+
+  shifts.forEach(shift => {
+    let shift0nos = [];
+    let shift1nos = [];
+
+    ptos.forEach(pto => {
+      if (doesconflict(Date.parse(pto.startdate.slice(0,16)),shift[0],Date.parse(pto.enddate.slice(0,16)),shift[1]))
+        shift0nos = shift0nos.concat([pto.emp]);
+      if (doesconflict(Date.parse(pto.startdate.slice(0,16)),shift[1],Date.parse(pto.enddate.slice(0,16)),shift[2]))
+        shift1nos = shift1nos.concat([pto.emp]);
+    })
+
+    conflicts = conflicts.concat([{Date:yurpdatefromn(shift[0]),shift0:shift0nos,shift1:shift1nos}]);
+  });
+
+  return conflicts;
 }
 
 /***	

@@ -14,8 +14,18 @@ function Status({grid,status}){
   let s = Array.isArray(status)?status:[status];
 
   return(
-    <div key={0} id='status' style={{gridTemplateColumns: gcols(grid)}} className={styles.output}>
+    <div key={0} id='status' style={{gridTemplateColumns: gcols(grid)}} className={styles.status}>
       {s.map((e,i) => <div style={{gridColumn: stretch(grid,s.length,i)}} key={i} id={'s'+i}>{e}</div>)}
+    </div>
+  );
+}
+
+function Outputs({grid,outputs}){
+  let o = Array.isArray(outputs)?outputs:[outputs];
+
+  return(
+    <div key={1} id='outputs' style={{gridTemplateColumns: gcols(grid)}} className={styles.outputs}>
+      {o.map((e,i) => <div style={{gridColumn: stretch(grid,o.length,i)}} key={i} id={'o'+i}>{e}</div>)}
     </div>
   );
 }
@@ -35,6 +45,7 @@ function Buttons({grid,handler,btxt,tab})
 {
   let h = Array.isArray(handler)?handler:[handler];
   let t = Array.isArray(btxt)?btxt:[btxt];
+
   return(
     <div key={2} id='buttons' style={{gridTemplateColumns: gcols(grid)}} className={styles.buttons}>
       {t.map((e,i) => <button style={{gridColumn: stretch(grid,t.length,i)}} onClick={h[i]} key={e} id={'b'+i} tabIndex={tab+i}>{e}</button>)}
@@ -42,12 +53,13 @@ function Buttons({grid,handler,btxt,tab})
   );
 }
 
-export function Page({sprops,iprops,bprops}){
+export function Page({sprops,oprops,iprops,bprops}){
   return(
     <PWrap>
-      {sprops?<Status  {...sprops}/>:null}
+      {sprops?<Status  {...sprops}/>:''}
+      {oprops?<Outputs {...oprops}/>:''}
       {iprops?<Inputs  {...iprops} tab={1}/>:''}
-      {bprops?<Buttons {...bprops} tab={iprops?(Array.isArray(iprops.itxt)?iprops.itxt.length:2):1}/>:null}
+      {bprops?<Buttons {...bprops} tab={iprops?(Array.isArray(iprops.itxt)?iprops.itxt.length:2):1}/>:''}
     </PWrap>
   );
 }

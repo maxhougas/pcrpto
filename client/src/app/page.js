@@ -9,6 +9,7 @@ import * as fun from "./functions.js";
 export default function Home(){
 
   const [sprops,setsprops] = React.useState({grid:1,status:['Willkommen']});
+  const [oprops,setoprops] = React.useState(null);
   const [iprops,setiprops] = React.useState({grid:2,type:['text','password'],itxt:['Username','Password']});
   const [bprops,setbprops] = React.useState({grid:1,handler:[login],btxt:['Log In']});
 
@@ -18,14 +19,16 @@ export default function Home(){
  S001 START HELPER FUNCTIONS
  ***/
 
- function closeHandle(e){
-   window.removeEventListener('beforeunload',closeHandle,false);
-   e.preventDefault();
-   logout();
- }
+  function closeHandle(e){
+    e.preventDefault();
+    logout();
+  }
 
   function s(grid,status){
     return ({grid:grid,status:status});
+  }
+  function o(grid,outputs){
+    return ({grid:grid,outputs:outputs});
   }
   function i(grid,type,itxt){
     return({grid:grid,type:type,itxt:itxt});
@@ -36,12 +39,14 @@ export default function Home(){
 
   function loginpage(){
     setsprops({grid:1,status:['Willkommen']});
+    setoprops(null);
     setiprops({grid:2,type:['text','password'],itxt:['Username','Password']});
     setbprops({grid:1,handler:[login],btxt:['Log In']});
   }
 
   function bossmode(){
    setsprops({grid:1,status:['Admin Mode']});
+   setoprops(null);
    setiprops({grid:1,type:['text'],itxt:['Ausweis']});
    setbprops({
      grid:3,
@@ -54,6 +59,7 @@ export default function Home(){
 
   function employeemode(){
     setsprops({grid:1,status:['Employee Mode']});
+    setoprops(null);
     setiprops({
       grid:2,
       type:['datetime-local',      'datetime-local',    'number'],
@@ -68,28 +74,25 @@ export default function Home(){
 
   function cpasspage(){
     setsprops({grid:1,status:['Change Password']});
+    setoprops(null);
     setiprops({grid:2,type:['text','password','password','password'],itxt:['Username','Old Password','New Password','Confirm Password']});
     setbprops({grid:2,handler:[cpass,mainpage,logout],btxt:['Confirm','Back','Log Out']});
+  }
+
+  function rsuc(status = null,ogrid = null,oarr = null){
+    setsprops(status?s(1,Array.isArray(status)?status:[status]):null);
+    setoprops((ogrid && oarr && oarr.toString())?o(ogrid,oarr):null);
+  }
+  function rfail(err){
+     setsprops(s(1,err.message));
+     setoprops(null);
+     console.error(err);
   }
 
 /***
  E001 END HELPER FUNCTIONS
  S002 START BUTTON FUNCTIONS
  ***/
-
-  function mainpage(){
-    let url = 'whoami';
-    let errmsg = 'Determine User Mode Failed'
-    setsprops(s(1,['Who Am I?']));
-
-    fun.genreq('GET',url,null).then(
-      jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
-      err => {throw Error(url+' failed',{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,errmsg));
-      console.error(err);
-    });
-  }
 
   function login(){
     let url = 'login';
@@ -108,10 +111,7 @@ export default function Home(){
     ).then(
       jso => {window.addEventListener('beforeunload',closeHandle,false);mainpage();},
       err => {throw Error(errmsg,{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,[errmsg]));
-      console.error(err);
-    });
+    ).catch(rfail);
   }
 
   function logout(){
@@ -122,10 +122,18 @@ export default function Home(){
    fun.genreq('GET',url,null).then(
       jso => {window.removeEventListener('beforeunload',closeHandle,false);loginpage();},
       err => {throw Error(errmsg,{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,[errmsg]));
-      console.error(err);
-    });
+    ).catch(rfail);
+  }
+
+  function mainpage(){
+    let url = 'whoami';
+    let errmsg = 'Determine User Mode Failed'
+    setsprops(s(1,['Who Am I?']));
+
+    fun.genreq('GET',url,null).then(
+      jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(rfail);
   }
 
   function conflicts(){
@@ -134,10 +142,57 @@ export default function Home(){
     setsprops(s(1,['Getting Requests...']));
 
     fun.genreq('GET',url,null).then(
-      jso => setsprops(s(4,fun.checkconflicts(jso[0]))),
+      jso => rsuc('PTO Conflicts',4,fun.checkconflicts(jso)),
       err => {throw Error(errmsg,{cause:err});}
+    ).catch(rfail);
+  }
+
+  function cpass(){
+    let url = 'cpass'
+    let errmsg = 'Password Change Failed';
+    let uname = document.getElementById('i0').value;
+    let opass = document.getElementById('i1').value;
+    let npass = document.getElementById('i2').value;
+    let cpass = document.getElementById('i3').value;
+    document.getElementById('i0').value = '';
+    document.getElementById('i1').value = '';
+    document.getElementById('i2').value = '';
+    document.getElementById('i3').value = '';
+    setsprops(s(1,['Changing Password...']));
+
+    Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey,npass),fun.encrypt(pkey,cpass)]).then(
+      pas => fun.genreq('POST',url,{uname:uname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1]),cpass:fun.tobase64(pas[2])}),
+      err => {throw Error('Encryption failed',{cause:err});}
+    ).then(
+      jso => rsuc('Password Changed'),
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(rfail);
+  }
+
+  function cuser(){
+//    if(document.getElementById('i0').value === '')
+//      setsprops(s(1,['Failed: Empty String']));
+//    else{
+      let url = 'cuser';
+      let errmsg = 'Create User Failed';
+      setsprops(s(1,['Creating User...']));
+
+      fun.genreq('POST',url,{nuname:document.getElementById('i0').value}).then(
+        jso => setsprops(s(1,['User Created'])),
+        err => {throw Error(errmsg,{cause:err});}
+      ).catch(rfail);
+//    }
+  }
+
+  function duser(){
+    let url = 'duser';
+    setsprops(s(1,'Deleting User...'));
+
+    fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
+      jso => setsprops(s(1,['User Deleted'])),
+      err => {throw Error('Delete User Failed',{cause:err});}
     ).catch(err => {
-      setsprops(s(1,[errmsg]));
+      setsprops(s(1,['Delete User Failed']));
       console.error(err);
     });
   }
@@ -148,11 +203,11 @@ export default function Home(){
     setsprops(s(1,['Retrieving Data...']));
 
     function mklist(usrs){
-      return usrs.map(e => e.id);
+      return usrs.map(e => e.User);
     }
 
     fun.genreq('GET',url,null).then(
-      jso => setsprops(s(2,mklist(jso))),
+      jso => rsuc('Registered Employees',2,mklist(jso)),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
       setsprops(s(1,[errmsg]));
@@ -160,23 +215,43 @@ export default function Home(){
     });
   }
 
-  function load(store){
-    
+  function loadshifts(store){
+    let url = 'loadshifts';
+    let errmsg = 'Get Shifts Failed';
+
+    fun.genreq('POST',url,{store:store}).then(
+      jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);},
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err => {
+      setsprops(s(1,[errmsg]));
+      console.error(err);
+    });
   }
 
   function loaddatteln(){
-    load('datteln');
+    loadshifts('datteln');
   }
 
   function mplan(){
-    setsprops(s(3,['Sunday','Weekday','Saturday']));
+    setsprops(s(1,['Month Planner']))
+    setoprops(o(3,['Sunday','Weekday','Saturday']));
     setiprops(i(3,
       ['time',        'time',         'time',          'time',     'time',       'time',      
        'time',       'time',        'time',         'date'],
       ['Sunday Start','Weekday Start','Saturday Start','Sunday SC','Weekday SC','Saturday SC',
        'Sunday Ende','Weekday Ende','Saturday Ende','Start Date']
     ));
-    setbprops(b(3,[loaddatteln,mainpage,logout],['Load Datteln','Back','Log Out']));
+    setbprops(b(3,[loaddatteln,savedatteln,mshifts,mainpage,logout],['Load Datteln','Save Datteln','Generate Month','Back','Log Out']));
+  }
+
+  function mshifts(){
+    let url = 'vreqs';
+    let errmsg = 'Get Requests Failed';
+
+    fun.genreq('GET',url,null).then(
+      jso => console.log(fun.shiftconfs(fun.genshifts(Array.from(document.getElementById('inputs').children).map(e=>e.value),document.getElementById('i9').value,null),jso)),
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(rfail);
   }
 
   function preqs(){
@@ -217,62 +292,22 @@ export default function Home(){
     else setsprops(s(1,['Failed: Empty String']));
   }
 
-  function cpass(){
-    let url = 'cpass'
-    let errmsg = 'Password Change Failed';
-    let uname = document.getElementById('i0').value;
-    let opass = document.getElementById('i1').value;
-    let npass = document.getElementById('i2').value;
-    let cpass = document.getElementById('i3').value;
-    document.getElementById('i0').value = '';
-    document.getElementById('i1').value = '';
-    document.getElementById('i2').value = '';
-    document.getElementById('i3').value = '';
-    setsprops(s(1,['Changing Password...']));
+  function saveshifts(store){
+    let url = 'saveshifts';
+    let errmsg = 'Save Failed';
+    console.log(Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString());
 
-    if(uname && opass && npass && cpass && npass == cpass){
-      Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey,npass)]).then(
-        pas => fun.genreq('POST',url,{uname:uname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1])}),
-        err => {throw Error('Encryption failed',{cause:err});}
-      ).then(
-        jso => mainpage(),
-        err => {throw Error(errmsg,{cause:err});}
-      ).catch(err => {
-        setsprops(s(1,[errmsg]));
-        console.error(err);
-      });
-    }
-    else setsprops(s(1,['Failed: Empty String or Mismatch']));
-  }
-
-  function cuser(){
-    if(document.getElementById('i0').value === '')
-      setsprops(s(1,['Failed: Empty String']));
-    else{
-      let url = 'cuser';
-      setsprops(s(1,['Creating User...']));
-
-      fun.genreq('POST',url,{nuname:document.getElementById('i0').value}).then(
-        jso => setsprops(s(1,['User Created'])),
-        err => {throw Error('Create User Failed',{cause:err});}
-      ).catch(err => {
-        setsprops(s(1,['Create User Failed']));
-        console.error(err);
-      });
-    }
-  }
-
-  function duser(){
-    let url = 'duser';
-    setsprops(s(1,'Deleting User...'));
-
-    fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
-      jso => setsprops(s(1,['User Deleted'])),
-      err => {throw Error('Delete User Failed',{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,['Delete User Failed']));
+    fun.genreq('POST',url,{shifts:store+"','"+Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString().replaceAll(',',"','")}).then(
+      jso => setsprops(s(1,['Shifts Saved'])),
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(err=>{
+      setsprops(s(1,[errmsg]));
       console.error(err);
     });
+  }
+
+  function savedatteln(){
+    saveshifts('datteln');
   }
 
   function termconns(){
@@ -308,6 +343,7 @@ export default function Home(){
 
   function vreqs(){
     let url = 'vreqs';
+    let errmsg = 'Get Requests Failed';
     setsprops(s(1,['Getting Requests...']));
 
     function mklist(jso){
@@ -317,10 +353,11 @@ export default function Home(){
     }
 
     fun.genreq('GET',url,null).then(
-      jso => setsprops(s(4,mklist(jso))),
-      err => {throw Error('',{cause:err});}
+      jso => {setsprops(s(1,['Active PTO Requests']));setoprops(o(4,mklist(jso)));},
+      err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
-      setsprops(s(1,['Get Requests Failed']));
+      setsprops(s(1,[errmsg]));
+      setoprops(null);
       console.error(err);
     });
   }
@@ -329,8 +366,5 @@ export default function Home(){
  E002 END BUTTON FUNCTIONS
  ***/
 
-
-  //window.beforeunload = logout;
-  
-  return (<comps.Page sprops={sprops} iprops={iprops} bprops={bprops}/>);
+  return (<comps.Page sprops={sprops} oprops={oprops} iprops={iprops} bprops={bprops}/>);
 }

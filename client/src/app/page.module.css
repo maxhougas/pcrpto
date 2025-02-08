@@ -8,14 +8,32 @@
   min-width: 100vw;
 }
 
-.output {
+.status {
   width: 100%;
   max-width: 1080px;
   display: grid;
   gap: 5px;
 }
 
-.output div {
+.status div {
+  font-size: 24px;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  background-color: rgba(var(--callout-rgb), 0.6);
+  border: solid rgba(var(--callout-border-rgb), 0.3);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+}
+
+.outputs {
+  width: 100%;
+  max-width: 1080px;
+  display: grid;
+  gap: 5px;
+}
+
+.outputs div {
   font-size: 24px;
   display: flex;
   width: 100%;
