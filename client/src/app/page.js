@@ -238,7 +238,7 @@ export default function Home(){
        'Sunday Ende','Weekday Ende','Saturday Ende','Start Date','Store']
     ));
     setbprops(b(3,
-      [ loaddatteln,   savedatteln,   mshifts,         sday,              vshifts       mainpage,logout],
+      [ loaddatteln,   savedatteln,   mshifts,         sday,              vshifts,      mainpage,logout],
       ['Load Datteln','Save Datteln','Generate Month','Save Special Day','View Shifts','Back','Log Out']));
   }
 
