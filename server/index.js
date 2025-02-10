@@ -38,13 +38,6 @@ console.log('Non-route middleware configured');
  S002 START DEBUG ROUTES
  ***/
 
-/*
-app.post("/echo", (req,res) => {
-  console.log('POST echo request: '+req.ip);
-  res.json({d:req.body,err:null});
-});
-*/
-
 app.get("/echo", (req,res) => {
   console.log('GET echo request: '+req.ip);
   res.json({d:'echo',err:null});
@@ -259,24 +252,6 @@ app.post("/cpass",(req,res)=>{
     console.error(err)
     res.json({err:estackstring(err)});
   });
-
-/*  Promise.resolve(i !== -1 && currentuser(req) === req.body.uname).then(
-    ip => {if(ip) return; else throw Error('User name mismatch or IP record not found');},
-    err => {throw Error('Equality test should not fail');}
-  ).then(
-    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && pas[0] === sqs[i].pool.config.connectionConfig.password) return pas[1]; else throw Error('Password mismatch');},
-    err => {throw Error('Decryption Failed',{cause:err});}
-  ).then(
-    pas => Promise.all([sqs[i].query('SET PASSWORD FOR '+currentuser(req)+"@'"+NIP+"' = password('"+sanitize(pas)+"')"),sqs[i] = mysql.createPool(poolconf(currentuser(req),pas))]),
-    err => {throw Error('Equality test should not fail',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query or pool creation failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/cuser",(req,res)=>{
@@ -292,24 +267,6 @@ app.post("/cuser",(req,res)=>{
     console.error(err)
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return sqs[i].query("GRANT employee TO "+sanitize(req.body.nuname)+"@'"+NIP+"' IDENTIFIED BY 'default'"); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => sqs[i].query("SET DEFAULT ROLE employee FOR "+sanitize(req.body.nuname)),
-    err => {throw Error('Create user / assign role failed',{cause:err});}
-  ).then(
-    jso => sqs[i].query("INSERT INTO employees (id) SELECT user FROM mysql.user WHERE user = '"+sanitize(req.body.nuname)+"'"),
-    err => {throw Error('Set role failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Mirroring failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/duser",(req,res)=>{
@@ -328,24 +285,6 @@ app.post("/duser",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return isadmin(i,sanitize(req.body.uname)); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    adm => {if(adm) throw Error('Delete admin blocked'); else return sqs[i].query('DROP USER IF EXISTS '+sanitize(req.body.uname));},
-    err => {throw Error('User typing failed (duser)',{cause:err});}
-  ).then(
-    jso => sqs[i].query("DELETE FROM employees WHERE id = '"+sanitize(req.body.uname)+"'"),
-    err => {throw Error('Delete failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete mirror failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/lemp",(req,res)=>{
@@ -361,18 +300,6 @@ app.post("/lemp",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return sqs[i].query("SELECT user FROM mysql.user WHERE default_role = 'employee'"); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get users failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/loadshifts",(req,res)=>{
@@ -389,17 +316,6 @@ app.post("/loadshifts",(req,res)=>{
     res.json({err:estackstring(err)});
   });
 
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if (adm) return sqs[i].query("SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'"); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get shifts failed',{cause:err});}
-  ).catch(err => {
-    res.json({err:estackstring(err)});
-    console.error(err);
-  });
-*/
 });
 
 app.post("/preqs",(req,res)=>{
@@ -415,18 +331,6 @@ app.post("/preqs",(req,res)=>{
     console.error(err);
     res.json(estackstring(err));
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm && req.body.checkphrase === 'PURGE') return sqs[i].query('TRUNCATE TABLE pto'); else throw Error('Nonadmin user or checkphrase mismatch');}, 
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Purge failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/reset", (req,res) => {
@@ -439,15 +343,6 @@ app.post("/reset", (req,res) => {
    console.error(err);
    res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm && req.body.checkphrase === 'RESET') {purger(); res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).catch(err => {
-    console.error(Error('Reset failed',{cause:err}));
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/rpreq",(req,res)=>{
@@ -463,18 +358,6 @@ app.post("/rpreq",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => sqs[i].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(adm?'':" AND empid = '"+currentuser(req)+"'")),
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/saveshifts",(req,res)=>{
@@ -490,18 +373,6 @@ app.post("/saveshifts",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) return sqs[i].query("REPLACE INTO stores (id,ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send) VALUES('"+req.body.shifts.toString()+"')"); else throw Error('Nonadmin user');},
-    err => {throw Error('User typing failed',{cause:'err'});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Save failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/spreq",(req,res)=>{
@@ -517,18 +388,6 @@ app.post("/spreq",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => {if(adm) throw Error('Blocked admin submission'); else return sqs[i].query("INSERT INTO pto (emp,startdate,enddate) values ('"+currentuser(req)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Submission failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/vreqs",(req,res)=>{
@@ -545,18 +404,6 @@ app.post("/vreqs",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => sqs[i].query('SELECT * FROM pto'+ (adm?'':" WHERE emp = '"+currentuser(req)+"'")),
-    err => {throw Error('User typing failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get requests failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 app.post("/whoami",(req,res)=>{
@@ -570,15 +417,6 @@ app.post("/whoami",(req,res)=>{
     console.error(err);
     res.json({err:estackstring(err)});
   });
-
-/*  isadmin(i,currentuser(req)).then(
-    adm => res.json({d:{mode:adm?'admin':'employee'},err:null}),
-    err => {throw Error('User typing failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-*/
 });
 
 console.log('Production routes registered');
