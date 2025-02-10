@@ -1,5 +1,11 @@
 export const PORT = 5000;
 
+export const G = {
+  pkey:'',
+  uname:'',
+  tok:''
+}
+
 /***
  E000 END CONSTANTS
  S001 START FUNCTIONS
@@ -28,11 +34,11 @@ export function tfromd(d){
 }
 export function datefromn(n){
   let d = new Date(n);
-  return Number(d.getFullYear()+d.getMonth()+d.getDate());
+  return Number(d.getFullYear()+(d.getMonth()+1)+d.getDate());
 }
 export function yurpdatefromn(n){
   let d = new Date(n);
-  return d.getDate()+'-'+d.getMonth()+'-'+d.getFullYear();
+  return d.getDate()+'-'+(d.getMonth()+1)+'-'+d.getFullYear();
 }
 export function datefroms(t){
   return s.sclice(0,10).replaceAll(s.charAt(4),'');
@@ -46,11 +52,11 @@ export function tobase64(s){
   return Buffer.from(s).toString('Base64');
 }
 
-export function genreq(m,u,b){
+export function genreq(u,b){
   return fetch('https://'+document.domain+':'+PORT+'/'+u,{
-    method:m,
+    method:'POST',
     headers:{"Content-Type":"application/json"},
-    body: m === 'POST' ? JSON.stringify(b) : null
+    body: JSON.stringify({...b,uname:G.uname})
   }).then(
     res => res.json(),
     err => {throw Error('Connection Failed',{cause:err});}
@@ -61,7 +67,7 @@ export function genreq(m,u,b){
 }
 
 export function getkey(){
-  return genreq('GET','getkey',null).then(
+  return genreq('getkey',null).then(
     key => processkey(Uint8Array.from(Buffer.from(key,'Base64'))),
     err => {throw Error('Key request failed',{cause:err});}
   );

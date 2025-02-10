@@ -13,8 +13,6 @@ export default function Home(){
   const [iprops,setiprops] = React.useState({grid:2,type:['text','password'],itxt:['Username','Password']});
   const [bprops,setbprops] = React.useState({grid:1,handler:[login],btxt:['Log In']});
 
-  let pkey;
-
 /***
  S001 START HELPER FUNCTIONS
  ***/
@@ -97,16 +95,16 @@ export default function Home(){
   function login(){
     let url = 'login';
     let errmsg = 'Login Failed';
-    let uname = document.getElementById('i0').value;
+    fun.G.uname = document.getElementById('i0').value;
     let pass = document.getElementById('i1').value;
     document.getElementById('i1').value = '';
     setsprops(s(1,['Logging In...']));
 
     fun.getkey().then(
-      key => {pkey = key; return fun.encrypt(key,pass);},
+      key => {fun.G.pkey = key; return fun.encrypt(key,pass);},
       err => {throw Error('Get key failed',{cause:err});}
     ).then(
-      enc => fun.genreq('POST',url,{uname:uname,pass:fun.tobase64(enc)}),
+      enc => fun.genreq(url,{pass:fun.tobase64(enc)}),
       err => {throw Error('Encryption failed',{cause:err});}
     ).then(
       jso => {window.addEventListener('beforeunload',closeHandle,false);mainpage();},
@@ -119,7 +117,7 @@ export default function Home(){
     let errmsg = 'Logout Failed';
     setsprops(s(1,['Logging Out...']));
 
-   fun.genreq('GET',url,null).then(
+   fun.genreq(url,null).then(
       jso => {window.removeEventListener('beforeunload',closeHandle,false);loginpage();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -130,7 +128,7 @@ export default function Home(){
     let errmsg = 'Determine User Mode Failed'
     setsprops(s(1,['Who Am I?']));
 
-    fun.genreq('GET',url,null).then(
+    fun.genreq(url,null).then(
       jso => {if (jso.mode === 'admin') bossmode(); else employeemode();},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -141,7 +139,7 @@ export default function Home(){
     let errmsg = 'Get Requests Failed';
     setsprops(s(1,['Getting Requests...']));
 
-    fun.genreq('GET',url,null).then(
+    fun.genreq(url,null).then(
       jso => rsuc('PTO Conflicts',4,fun.checkconflicts(jso)),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -150,7 +148,7 @@ export default function Home(){
   function cpass(){
     let url = 'cpass'
     let errmsg = 'Password Change Failed';
-    let uname = document.getElementById('i0').value;
+    let cname = document.getElementById('i0').value;
     let opass = document.getElementById('i1').value;
     let npass = document.getElementById('i2').value;
     let cpass = document.getElementById('i3').value;
@@ -160,8 +158,8 @@ export default function Home(){
     document.getElementById('i3').value = '';
     setsprops(s(1,['Changing Password...']));
 
-    Promise.all([fun.encrypt(pkey,opass),fun.encrypt(pkey,npass),fun.encrypt(pkey,cpass)]).then(
-      pas => fun.genreq('POST',url,{uname:uname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1]),cpass:fun.tobase64(pas[2])}),
+    Promise.all([fun.encrypt(fun.G.pkey,opass),fun.encrypt(fun.G.pkey,npass),fun.encrypt(fun.G.pkey,cpass)]).then(
+      pas => fun.genreq(url,{cname:cname,opass:fun.tobase64(pas[0]),npass:fun.tobase64(pas[1]),cpass:fun.tobase64(pas[2])}),
       err => {throw Error('Encryption failed',{cause:err});}
     ).then(
       jso => rsuc('Password Changed'),
@@ -177,7 +175,7 @@ export default function Home(){
       let errmsg = 'Create User Failed';
       setsprops(s(1,['Creating User...']));
 
-      fun.genreq('POST',url,{nuname:document.getElementById('i0').value}).then(
+      fun.genreq(url,{nuname:document.getElementById('i0').value}).then(
         jso => setsprops(s(1,['User Created'])),
         err => {throw Error(errmsg,{cause:err});}
       ).catch(rfail);
@@ -186,15 +184,13 @@ export default function Home(){
 
   function duser(){
     let url = 'duser';
+    let errmsg = 'Delete User Failed';
     setsprops(s(1,'Deleting User...'));
 
-    fun.genreq('POST',url,{uname:document.getElementById('i0').value}).then(
+    fun.genreq(url,{dname:document.getElementById('i0').value}).then(
       jso => setsprops(s(1,['User Deleted'])),
-      err => {throw Error('Delete User Failed',{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,['Delete User Failed']));
-      console.error(err);
-    });
+      err => {throw Error(errmsg,{cause:err});}
+    ).catch(rfail);
   }
 
   function lemp(){
@@ -203,10 +199,10 @@ export default function Home(){
     setsprops(s(1,['Retrieving Data...']));
 
     function mklist(usrs){
-      return usrs.map(e => e.User);
+      return usrs.map(e => e.id);
     }
 
-    fun.genreq('GET',url,null).then(
+    fun.genreq(url,null).then(
       jso => rsuc('Registered Employees',2,mklist(jso)),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
@@ -219,7 +215,7 @@ export default function Home(){
     let url = 'loadshifts';
     let errmsg = 'Get Shifts Failed';
 
-    fun.genreq('POST',url,{store:store}).then(
+    fun.genreq(url,{store:store}).then(
       jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
@@ -237,18 +233,20 @@ export default function Home(){
     setoprops(o(3,['Sunday','Weekday','Saturday']));
     setiprops(i(3,
       ['time',        'time',         'time',          'time',     'time',       'time',      
-       'time',       'time',        'time',         'date'],
+       'time',       'time',        'time',         'date',      'text'],
       ['Sunday Start','Weekday Start','Saturday Start','Sunday SC','Weekday SC','Saturday SC',
-       'Sunday Ende','Weekday Ende','Saturday Ende','Start Date']
+       'Sunday Ende','Weekday Ende','Saturday Ende','Start Date','Store']
     ));
-    setbprops(b(3,[loaddatteln,savedatteln,mshifts,mainpage,logout],['Load Datteln','Save Datteln','Generate Month','Back','Log Out']));
+    setbprops(b(3,
+      [ loaddatteln,   savedatteln,   mshifts,         sday,              vshifts       mainpage,logout],
+      ['Load Datteln','Save Datteln','Generate Month','Save Special Day','View Shifts','Back','Log Out']));
   }
 
   function mshifts(){
     let url = 'vreqs';
     let errmsg = 'Get Requests Failed';
 
-    fun.genreq('GET',url,null).then(
+    fun.genreq(url,null).then(
       jso => console.log(fun.shiftconfs(fun.genshifts(Array.from(document.getElementById('inputs').children).map(e=>e.value),document.getElementById('i9').value,null),jso)),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -263,7 +261,7 @@ export default function Home(){
       setsprops(s(1,['Type "PURGE" and press button again']));
     else{
       setsprops(s(1,['Purging...']));
-      fun.genreq('POST',url,{checkphrase:conf}).then(
+      fun.genreq(url,{checkphrase:conf}).then(
         jso => setsprops(s(1,['Requests Purged'])),
         err => {throw Error(errmsg,{cause:err});}
       ).catch(err => {
@@ -281,7 +279,7 @@ export default function Home(){
       let errmsg = 'Delete Failed';
       setsprops(s(1,['Deleting...']));
 
-      fun.genreq('POST',url,{id:id}).then(
+      fun.genreq(url,{id:id}).then(
         jso => setsprops(s(1,['Request Deleted'])),
         err => {throw Error(errmsg,{cause:err});}
       ).catch(err => {
@@ -297,7 +295,7 @@ export default function Home(){
     let errmsg = 'Save Failed';
     console.log(Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString());
 
-    fun.genreq('POST',url,{shifts:store+"','"+Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString().replaceAll(',',"','")}).then(
+    fun.genreq(url,{shifts:store+"','"+Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString().replaceAll(',',"','")}).then(
       jso => setsprops(s(1,['Shifts Saved'])),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err=>{
@@ -310,17 +308,24 @@ export default function Home(){
     saveshifts('datteln');
   }
 
+  function sday(){
+  }
+
   function termconns(){
     let url='reset';
-    setsprops(s(1,['Terminating...']));
+    let errmsg='Reset Failed';
+    let conf = document.getElementById('i0').value
 
-    fun.genreq('POST',url,{checkphrase:'reset'}).then(
-      jso => loginpage(),
-      err => {throw Error('Reset Failed',{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,['Reset Failed']));
-      console.error(err);
-    });
+    if(conf !== 'RESET')
+      setsprops(s(1,['Type "RESET" and press button again']));
+    else{
+      setsprops(s(1,['Terminating...']));
+
+      fun.genreq(url,{checkphrase:conf}).then(
+        jso => loginpage(),
+        err => {throw Error(errmsg,{cause:err});}
+      ).catch(rfail);
+    }
   }
 
   function spreq(){
@@ -331,7 +336,7 @@ export default function Home(){
       let url = 'spreq'
       setsprops(s(1,['Submitting...']));
 
-      fun.genreq('POST',url,{start:start,end:end}).then(
+      fun.genreq(url,{start:start,end:end}).then(
         jso => setsprops(s(1,['Request Submitted'])),
         err => {throw Error('Request Submission Failed',{cause:err});}
       ).catch(err => {
@@ -352,7 +357,7 @@ export default function Home(){
       return(lst);
     }
 
-    fun.genreq('GET',url,null).then(
+    fun.genreq(url,null).then(
       jso => {setsprops(s(1,['Active PTO Requests']));setoprops(o(4,mklist(jso)));},
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err => {
@@ -360,6 +365,9 @@ export default function Home(){
       setoprops(null);
       console.error(err);
     });
+  }
+
+  function vshifts(){
   }
 
 /***
