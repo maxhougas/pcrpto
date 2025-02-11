@@ -1,4 +1,8 @@
 export const PORT = 5000;
+export const DAY = 86400000;
+export const HOUR = 3600000;
+export const MINUTE = 60000;
+export const ZONE = (new Date()).getTimezoneOffset()*60000;
 
 export const G = {
   pkey:'',
@@ -23,8 +27,11 @@ export function stripsec(t){
   return t.slice(0,16);
 }
 
-export function miltime(t){
-  return t.slice(0,-8).replace('T',' ');
+export function ms(t){
+  return Date.parse('1970-01-01 '+t+'Z');
+}
+export function localtime(t){
+  return (t.slice(0,16).replace('T',' '));
 }
 export function yurptime(t){
   return t.slice(8,10)+t.slice(4,8)+t.slice(0,4)+' '+t.slice(11,13)+t.slice(13,16);
@@ -34,7 +41,7 @@ export function tfromd(d){
 }
 export function datefromn(n){
   let d = new Date(n);
-  return Number(d.getFullYear()+(d.getMonth()+1)+d.getDate());
+  return ''+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 }
 export function yurpdatefromn(n){
   let d = new Date(n);
@@ -89,11 +96,12 @@ export function encrypt(k,pass){
 
 export function doesconflict(s0,s1,e0,e1){
   return(
+    e0-s0 > 0 && e1-s1 > 0 && ( 
     (s0 <= s1 && s1 <  e0) ||
     (s0 <  e1 && e1 <= e0) ||
     (s1 <= s0 && s0 <  e1) ||
     (s1 <  e0 && e0 <= e1)
-  );
+  ));
 }
 
 export function checkconflicts(requests){
@@ -108,30 +116,38 @@ export function checkconflicts(requests){
   return c;
 }
 
-export function genshifts(defaults,start){
-  const day = 86400000;
+export function genshifts(start,defaults,specials = []){
 
-  function dow(t){
-    let d = new Date(t);
-    return d.getDay()==0?0:(d.getDay==6?2:1);
-  }
+  let defs = Array(7);
+  for(let i = 0;i < 7;i++)
+    defs[i] = [
+      ms(defaults[Math.floor((i+4)/5)]),
+      (ms(defaults[Math.floor((i+4)/5)+3]) > ms(defaults[Math.floor((i+4)/5)])) ? ms(defaults[Math.floor((i+4)/5)+3]) : (ms(defaults[Math.floor((i+4)/5)+3]) + DAY),
+      (ms(defaults[Math.floor((i+4)/5)+6]) > ms(defaults[Math.floor((i+4)/5)])) ? ms(defaults[Math.floor((i+4)/5)+6]) : (ms(defaults[Math.floor((i+4)/5)+6]) + DAY),
+    ];
 
-  let out = [];
-  for(let i = 0;i<35;i++){
-    let dowcode = dow(Number(Date.parse(start))+i*day);
-    let sstart = Date.parse(start+'T'+defaults[dowcode  ])+i*day;
-    let sc     = Date.parse(start+'T'+defaults[dowcode+3])+i*day;
-    let send   = Date.parse(start+'T'+defaults[dowcode+6])+i*day;
-    sc   += sstart < sc   ? 0 : day;
-    send += sstart < send ? 0 : day;
+  let out = Array(35);
+  for(let i = 0;i < 35;i++)
+    out[i] = [
+      Date.parse(start)+defs[i%7][0]+i*DAY,
+      Date.parse(start)+defs[i%7][1]+i*DAY,
+      Date.parse(start)+defs[i%7][2]+i*DAY
+  ];
 
-    out = out.concat([[sstart,sc,send]]);
-  }
+  specials.forEach(special => {
+    let i = Math.floor((Date.parse(special.date) - Date.parse(start))/DAY);
+    if(i >= 0 && i < 35){
+      out[i][0] = Date.parse(special.date) +  ms(special.sstart);
+      out[i][1] = Date.parse(special.date) + (ms(special.sc    ) > ms(special.sstart) ? ms(special.sc  ) : (ms(special.sc  ) + DAY));
+      out[i][2] = Date.parse(special.date) + (ms(special.send  ) > ms(special.sstart) ? ms(special.send) : (ms(special.send) + DAY));
+    }
+  });
 
   return out;
 }
 
 export function shiftconfs(shifts,ptos){
+
   let conflicts = [];
 
   shifts.forEach(shift => {
@@ -139,15 +155,16 @@ export function shiftconfs(shifts,ptos){
     let shift1nos = [];
 
     ptos.forEach(pto => {
-      if (doesconflict(Date.parse(pto.startdate.slice(0,16)),shift[0],Date.parse(pto.enddate.slice(0,16)),shift[1]))
+      if (doesconflict(Date.parse(pto.startdate),shift[0],Date.parse(pto.enddate),shift[1]))
         shift0nos = shift0nos.concat([pto.emp]);
-      if (doesconflict(Date.parse(pto.startdate.slice(0,16)),shift[1],Date.parse(pto.enddate.slice(0,16)),shift[2]))
+      if (doesconflict(Date.parse(pto.startdate),shift[1],Date.parse(pto.enddate),shift[2]))
         shift1nos = shift1nos.concat([pto.emp]);
     })
 
-    conflicts = conflicts.concat([{Date:yurpdatefromn(shift[0]),shift0:shift0nos,shift1:shift1nos}]);
+    conflicts = conflicts.concat([{date:yurpdatefromn(shift[0]),shift0:shift0nos,shift1:shift1nos}]);
   });
 
+  conflicts = conflicts.filter(e => e.shift0.toString() || e.shift1.toString());
   return conflicts;
 }
 

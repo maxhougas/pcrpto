@@ -364,7 +364,15 @@ app.post("/saveshifts",(req,res)=>{
   console.log('Save shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
-    tok => pools[tok[1]].query("REPLACE INTO stores (id,ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send) VALUES('"+req.body.shifts.toString()+"')"),
+    tok => pools[tok[1]].query("UPDATE stores SET ustart='"+sanitize(req.body.shifts[0])+
+                                               "',wstart='"+sanitize(req.body.shifts[1])+
+                                               "',sstart='"+sanitize(req.body.shifts[2])+
+                                               "',usc   ='"+sanitize(req.body.shifts[3])+
+                                               "',wsc   ='"+sanitize(req.body.shifts[4])+
+                                               "',ssc   ='"+sanitize(req.body.shifts[5])+
+                                               "',uend  ='"+sanitize(req.body.shifts[6])+
+                                               "',wend  ='"+sanitize(req.body.shifts[7])+
+                                               "',send  ='"+sanitize(req.body.shifts[8])+"' WHERE id = '"+req.body.store+"'"),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),

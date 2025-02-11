@@ -246,9 +246,18 @@ export default function Home(){
     let url = 'vreqs';
     let errmsg = 'Get Requests Failed';
 
+    function mklist(cnfs){
+      let lst = [];
+      cnfs.forEach(e => {lst = lst.concat(e.date); lst = lst.concat('1: '+e.shift0.toString()); lst = lst.concat('2: '+e.shift1.toString());});
+      return lst;
+    }
+
     fun.genreq(url,null).then(
-      jso => console.log(fun.shiftconfs(fun.genshifts(Array.from(document.getElementById('inputs').children).map(e=>e.value),document.getElementById('i9').value,null),jso)),
+      jso => fun.shiftconfs(fun.genshifts(document.getElementById('i9').value,Array.from(document.getElementById('inputs').children).map(e=>e.value)),jso),
       err => {throw Error(errmsg,{cause:err});}
+    ).then(
+      cnf => setoprops(o(3,mklist(cnf))),
+      err => {throw Error('Map should not fail',{cause:err});}
     ).catch(rfail);
   }
 
@@ -293,9 +302,8 @@ export default function Home(){
   function saveshifts(store){
     let url = 'saveshifts';
     let errmsg = 'Save Failed';
-    console.log(Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString());
 
-    fun.genreq(url,{shifts:store+"','"+Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value).toString().replaceAll(',',"','")}).then(
+    fun.genreq(url,{shifts:Array.from(document.getElementById('inputs').children).slice(0,-1).map((e,i) => e.value),store:store}).then(
       jso => setsprops(s(1,['Shifts Saved'])),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(err=>{
