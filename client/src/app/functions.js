@@ -63,12 +63,12 @@ export function genreq(u,b){
   return fetch('https://'+document.domain+':'+PORT+'/'+u,{
     method:'POST',
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({...b,uname:G.uname})
+    body: JSON.stringify({...b,uname:G.uname,tok:G.tok})
   }).then(
     res => res.json(),
     err => {throw Error('Connection Failed',{cause:err});}
   ).then(
-    jso => {if(jso.err) throw Error('Error from server',{cause:jso.err}); else return jso.d?jso.d:jso;},
+    jso => {if(jso.err) throw Error('Error from server',{cause:jso.err}); else {if(jso.t) G.tok = jso.t; return jso.d?jso.d:jso;}},
     err => {throw Error('JSON parse failed',{cause:err});}
   );
 }

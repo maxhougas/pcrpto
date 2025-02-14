@@ -60,10 +60,6 @@ let usr = {
    tok:[]
 };
 
-let sqs = [];
-let ips = [];
-let iks = [];
-
 console.log('SQL constants defined');
 
 /***
@@ -94,6 +90,8 @@ function mktok(){
     inuse = 0;
     usr.tok.forEach(e => {if(e === tok) inuse = 1;});
   } while(inuse);
+
+  return tok;
 }
 
 function poolconf(uname,pass){
@@ -153,7 +151,7 @@ function dec(ik,enc){
 function gtok(req){
   let i = usr.uid.indexOf(req.body.uname);
 
-  return Promise.resolve(i !== -1 && usr.ips[i] === req.ip).then(
+  return Promise.resolve(i !== -1 && usr.tok[i] === req.body.tok).then(
     fnd => {if(fnd) return [usr.uid[i],usr.typ[i],usr.ips[i],usr.iks[i]]; else throw Error('Request-token mismatch');},
     err => {throw Error('Equlaity test should not fail');}
   );
@@ -186,6 +184,7 @@ app.post("/getkey", (req, res) => {
   usr.typ[i] = '.';
   usr.ips[i] = req.ip;
   usr.iks[i] = '.';
+  usr.tok[i] = mktok();
 
   isadmin(req.body.uname).then(
     adm => {usr.typ[i] = adm;return mkeys();},
@@ -194,7 +193,7 @@ app.post("/getkey", (req, res) => {
     kp => {usr.iks[i]=kp.privateKey;return exp(kp.publicKey);},
     err => {throw Error('Generate key pair failed',{cause:err});}
   ).then(
-    uk => res.json({d:uk,err:null}),
+    uk => res.json({d:uk,t:usr.tok[i],err:null}),
     err => {throw Error('Export public key failed',{cause:err});}
   ).catch(err =>{
     console.error(err);
@@ -210,10 +209,10 @@ app.post("/login", (req,res) => {
     tok => dec(tok[3],req.body.pass),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
-    pas => pools[1].query("SELECT id FROM employees WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas)+"')"),
+    pas => pools[1].query("SELECT id FROM employees WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas)+sanitize(req.body.uname)+"')"),
     err => {throw Error('Decrypt failed',{cause:err});}
   ).then(
-    jso => {console.log(jso); if (jso[0] && jso[0][0] && jso[0][0].id === req.body.uname) res.json({d:null,err:null}); else throw Error('User name or password incorrect');},
+    jso => {if (jso[0] && jso[0][0] && jso[0][0].id === req.body.uname) res.json({d:null,err:null}); else throw Error('User name or password incorrect');},
     err => {throw Error('Query failed',{cause:err});}
   ).catch(err => {
     console.error(err);
@@ -243,7 +242,7 @@ app.post("/cpass",(req,res)=>{
     tok => Promise.all([dec(tok[3],req.body.opass),dec(tok[3],req.body.npass),dec(tok[3],req.body.cpass)]),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
-    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && req.body.cname === req.body.uname) return pools[1].query("UPDATE employees SET pass=PASSWORD('"+sanitize(pas[1])+"') WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas[0])+"')"); else throw Error('User name or password mismatch');},
+    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && req.body.cname === req.body.uname) return pools[1].query("UPDATE employees SET pass=PASSWORD('"+sanitize(pas[1])+"') WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas[0])+sanitize(req.body.uname)+"')"); else throw Error('User name or password mismatch');},
     err => {throw Error('Decryption failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
@@ -254,11 +253,11 @@ app.post("/cpass",(req,res)=>{
   });
 });
 
-app.post("/cuser",(req,res)=>{
+app.post("/empc",(req,res)=>{
   console.log('Create user: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
-    tok => pools[tok[1]].query("INSERT INTO employees(id) VALUES ('"+sanitize(req.body.nuname)+"')"),
+    tok => pools[tok[1]].query("INSERT INTO employees(id,pass) VALUES ('"+sanitize(req.body.nuname)+"', PASSWORD('default"+sanitize(req.body.nuname)+"'))"),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
@@ -269,7 +268,7 @@ app.post("/cuser",(req,res)=>{
   });
 });
 
-app.post("/duser",(req,res)=>{
+app.post("/empd",(req,res)=>{
   console.log('Delete user: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
@@ -287,7 +286,7 @@ app.post("/duser",(req,res)=>{
   });
 });
 
-app.post("/lemp",(req,res)=>{
+app.post("/empl",(req,res)=>{
   console.log('List employees: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
@@ -302,23 +301,7 @@ app.post("/lemp",(req,res)=>{
   });
 });
 
-app.post("/loadshifts",(req,res)=>{
-  console.log('Load shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get shifts failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-
-});
-
-app.post("/preqs",(req,res)=>{
+app.post("/reqp",(req,res)=>{
   console.log('Purge requests: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
@@ -330,6 +313,51 @@ app.post("/preqs",(req,res)=>{
   ).catch(err => {
     console.error(err);
     res.json(estackstring(err));
+  });
+});
+
+app.post("/reqr",(req,res)=>{
+  console.log('Delete pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(tok[1]?'':" AND emp = '"+sanitize(req.body.uname)+"'")),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Delete failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/reqs",(req,res)=>{
+  console.log('Submit pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => {if(tok[1]) throw Error('Blocked admin submission'); else return pools[0].query("INSERT INTO pto (emp,startdate,enddate) values ('"+sanitize(req.body.uname)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
+    err => {throw Error('Get token failed',{cause,err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Query failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/reql",(req,res)=>{
+  console.log('List pto requests: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query('SELECT * FROM pto'+ (tok[1]?'':" WHERE emp = '"+sanitize(req.body.uname)+"'")),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('Get requests failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
   });
 });
 
@@ -345,22 +373,23 @@ app.post("/reset", (req,res) => {
   });
 });
 
-app.post("/rpreq",(req,res)=>{
-  console.log('Delete pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
+app.post("/shiftload",(req,res)=>{
+  console.log('Load shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
-    tok => pools[tok[1]].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(tok[1]?'':" AND emp = '"+sanitize(req.body.uname)+"'")),
+    tok => pools[tok[1]].query("SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'"),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete failed',{cause:err});}
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('Get shifts failed',{cause:err});}
   ).catch(err => {
     console.error(err);
     res.json({err:estackstring(err)});
   });
+
 });
 
-app.post("/saveshifts",(req,res)=>{
+app.post("/shiftsave",(req,res)=>{
   console.log('Save shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
@@ -383,40 +412,35 @@ app.post("/saveshifts",(req,res)=>{
   });
 });
 
-app.post("/spreq",(req,res)=>{
-  console.log('Submit pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
+app.post("/storeasg",(req,res)=>{
+});
+
+app.post("/storec",(req,res)=>{
+});
+
+app.post("/stored",(req,res)=>{
+});
+
+app.post("/storel",(req,res)=>{
+  console.log('List stores: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
-    tok => {if(tok[1]) throw Error('Blocked admin submission'); else return pools[0].query("INSERT INTO pto (emp,startdate,enddate) values ('"+sanitize(req.body.uname)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
-    err => {throw Error('Get token failed',{cause,err});}
+    tok => pools[tok[1]].query('SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+req.body.store+"'" : ((req.body.emp) ? " WHERE emp = '"+req.body.emp+"'" : ''))),
+    err => {throw Error('Get token failed',{cause:err});}
   ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('List stores failed',{cause:err});}
   ).catch(err => {
     console.error(err);
     res.json({err:estackstring(err)});
   });
 });
 
-app.post("/vreqs",(req,res)=>{
-  console.log('List pto requests: '+(req.body.uname||'unknown')+' @ '+req.ip);
-  let i = ips.indexOf(req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query('SELECT * FROM pto'+ (tok[1]?'':" WHERE emp = '"+sanitize(req.body.uname)+"'")),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get requests failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+app.post("/storeuas",(req,res)=>{
 });
 
 app.post("/whoami",(req,res)=>{
   console.log('Who is: '+req.ip);
-  let i = ips.indexOf(req.ip);
 
   gtok(req).then(
     tok => res.json({d:{mode:tok[1]?'admin':'employee'},err:null}),
