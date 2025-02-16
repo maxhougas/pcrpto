@@ -81,6 +81,15 @@ function estackstring(err){
   return estring.slice(0,-4);
 }
 
+function generr(err,res){
+  console.error(err);
+  res.json({err:estackstring(err)});
+}
+
+function gensuc(d,res){
+  res.json({d:d,err:null});
+}
+
 function mktok(){
   let tok;
   let inuse;
@@ -112,7 +121,7 @@ function purger(){
   console.log('All user tokens purged');
 }
 
-function sanitize(q) {
+function sanitize(q){
   if(q) return q.replaceAll(" ","_");
   else throw Error('Empty String');
 };
@@ -148,6 +157,24 @@ function dec(ik,enc){
   ));
 }
 
+function genq(req,res,q){
+  console.log(req.originalURL+': '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  return Promise.resolve(i !== -1 && usr.tok[i] === req.body.tok).then(
+    fnd => {if(fnd) return [usr.uid[i],usr.typ[i],usr.ips[i],usr.iks[i]]; else throw Error('Request-token mismatch');},
+    err => {throw Error('Equlaity test should not fail');}
+  ).then(
+    tok => pools[tok[1]].query(q),
+    err => {throw Error('Token failed',{cause:err});}
+  ).then(
+    sql => res.json({d:sql[0],err:null}),
+    err => {throw Error('Query failed',{cause:err});}
+  ).catch(err=>{
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+}
+
 function gtok(req){
   let i = usr.uid.indexOf(req.body.uname);
 
@@ -164,7 +191,7 @@ function isadmin(empid){
   );
 }
 
-console.log('Promises defined');
+https://www.youtube.com/@StratEdgyProductionsconsole.log('Promises defined');
 
 /***
  E005 END PROMISES
@@ -361,7 +388,7 @@ app.post("/reql",(req,res)=>{
   });
 });
 
-app.post("/reset", (req,res) => {
+app.post("/reset",(req,res)=>{
   console.log('Reset: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
@@ -428,9 +455,33 @@ app.post("/storeasg",(req,res)=>{
 });
 
 app.post("/storec",(req,res)=>{
+  console.log('Create Store: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query("INSERT INTO stores(id) VALUES('"+sanitize(req.body.store)+"')"),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,e:null}),
+    err => {throw Error('Query failed',{cause:err});}
+  ).catch(err=>{
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
 });
 
 app.post("/stored",(req,res)=>{
+   console.log('Delete store : '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+   gtok(req).then(
+     tok => pools[tok[1]].query("DELETE FROM stores WHERE id = '"+sanitize(req.body.store)+"'"),
+     err => {throw Error('Get token failed',{cause:err});}
+   ).then(
+     jso => res.json({d:null,err:null}),
+     err => {throw Error('Query failed',{cause:err});}
+   ).catch(err=>{
+     console.log(err);
+     res.json({err:estackstring(err)});
+   });
 });
 
 app.post("/storel",(req,res)=>{

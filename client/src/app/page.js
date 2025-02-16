@@ -365,9 +365,21 @@ export default function Home(){
   }
 
   function storec(){
+    setsprops(s(1,['Creating Store...']));
+
+    fun.genreq('storec',{store:fun.txtbox('i1')}).then(
+      jso => rsuc('Created',null,null),
+      err => {throw Error('Create Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function stored(){
+    setsprops(s(1,['Deleting Store...']));
+
+    fun.genreq('stored',{store:fun.txtbox('i1')}).then(
+      jso => rsuc('Deleted',null,null),
+      err => {throw Error('Delete Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function storel(){
