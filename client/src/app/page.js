@@ -77,8 +77,8 @@ export default function Home(){
     setoprops(null);
     setiprops({grid:2,type:['text','text'],itxt:['Employee','Store']});
     setbprops({grid:3,
-      handler:[ empl,            empc,             empd,             storel,       storec,        stored,        storeasg,      storeuas,        bossmode,logout],
-      btxt   :['List Employees','Create Employee','Delete Employee','List Stores','Create Store','Delete Store','Assign Store','Unassign Store','Back',  'Log Out']
+      handler:[ empl,            empc,             empd,             storel,       storec,        stored,        storelas,          storeasg,      storeuas,        bossmode,logout],
+      btxt   :['List Employees','Create Employee','Delete Employee','List Stores','Create Store','Delete Store','List Assignments','Assign Store','Unassign Store','Back',  'Log Out']
     });
   }
 
@@ -99,7 +99,7 @@ export default function Home(){
             'Sunday Ende','Weekday Ende','Saturday Ende','Start Date','Store']
     });
     setbprops({grid:3,
-      handler:[ shiftload,    shiftsave,    shiftmk,         sday,              vshifts,      mainpage,logout],
+      handler:[ shiftload,    shiftsave,    shiftmk,         sday,              shiftv,       mainpage,logout],
       btxt   :['Load Shifts','Save Shifts','Generate Month','Save Special Day','View Shifts','Back',  'Log Out']
     });
   }
@@ -122,8 +122,8 @@ export default function Home(){
   function login(){
     let url = 'login';
     let errmsg = 'Login Failed';
-    fun.G.uname = document.getElementById('i0').value;
-    let pass = document.getElementById('i1').value;
+    fun.G.uname = fun.txtbox('i0');
+    let pass = fun.txtbox('i1');
     document.getElementById('i1').value = '';
     setsprops(s(1,['Logging In...']));
 
@@ -175,10 +175,10 @@ export default function Home(){
   function cpass(){
     let url = 'cpass'
     let errmsg = 'Password Change Failed';
-    let cname = document.getElementById('i0').value;
-    let opass = document.getElementById('i1').value;
-    let npass = document.getElementById('i2').value;
-    let cpass = document.getElementById('i3').value;
+    let cname = fun.txtbox('i0');
+    let opass = fun.txtbox('i1');
+    let npass = fun.txtbox('i2');
+    let cpass = fun.txtbox('i3');
     document.getElementById('i0').value = '';
     document.getElementById('i1').value = '';
     document.getElementById('i2').value = '';
@@ -200,7 +200,7 @@ export default function Home(){
     let errmsg = 'Create User Failed';
     setsprops(s(1,['Creating User...']));
 
-    fun.genreq(url,{nuname:document.getElementById('i0').value}).then(
+    fun.genreq(url,{nuname:fun.txtbox('i0')}).then(
       jso => setsprops(s(1,['User Created'])),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -211,7 +211,7 @@ export default function Home(){
     let errmsg = 'Delete User Failed';
     setsprops(s(1,'Deleting User...'));
 
-    fun.genreq(url,{dname:document.getElementById('i0').value}).then(
+    fun.genreq(url,{dname:fun.txtbox('i0')}).then(
       jso => setsprops(s(1,['User Deleted'])),
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
@@ -259,7 +259,7 @@ export default function Home(){
   function reqp(){
     let url = 'reqp'
     let errmsg = 'Purge Failed';
-    let conf = document.getElementById('i0').value
+    let conf = fun.txtbox('i0');
 
     if(conf !== 'PURGE')
       setsprops(s(1,['Type "PURGE" and press button again']));
@@ -276,7 +276,7 @@ export default function Home(){
   }
 
   function reqr(){
-    let id = document.getElementById('inputs').children.item(document.getElementById('inputs').children.length - 1).value;
+    let id = document.getElementsById('inputs').children.item(document.getElementById('inputs').children.length - 1).value;
 
     if(id){
       let url = 'reqr'
@@ -295,8 +295,8 @@ export default function Home(){
   }
 
   function reqs(){
-    let start = document.getElementById('i0').value
-    let end = document.getElementById('i1').value
+    let start = fun.txtbox('i0');
+    let end = fun.txtbox('i1');
 
     if((start) && (end) && Date.parse(start) < Date.parse(end)){
       let url = 'reqs'
@@ -316,16 +316,12 @@ export default function Home(){
   }
 
   function shiftload(){
-    let url = 'shiftload';
-    let errmsg = 'Get Shifts Failed';
+    setsprops(s(1,['Getting Shifts...']));
 
-    fun.genreq(url,{store:document.getElementById('i10').value}).then(
+    fun.genreq('shiftload',{store:fun.txtbox('i10')}).then(
       jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);},
-      err => {throw Error(errmsg,{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,[errmsg]));
-      console.error(err);
-    });
+      err => {throw Error('Get Shifts Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function shiftmk(){
@@ -336,29 +332,36 @@ export default function Home(){
       return lst;
     }
 
-    Promise.all([fun.genreq('shiftload',{store:document.getElementById('i10').value}),fun.genreq('reql',null)]).then(
-      jso => fun.shiftconfs(fun.genshifts(document.getElementById('i9').value,Object.values(jso[0][0])),jso[1]),
+    setsprops(s(1,['Generating Conflicts...']));
+
+    Promise.all([fun.genreq('shiftload',{store:fun.txtbox('i10')}),fun.genreq('reql',null)]).then(
+      jso => fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0])),jso[1]),
       err => {throw Error('Get default shifts failed',{cause:err});}
     ).then(
-      cnf => rsuc(document.getElementById('i10').value+' conflicts',3,mklist(cnf)),
+      cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf)),
       err => {throw Error('Data Formatting Failed',{cause:err});}
     ).catch(rfail);
   }
 
   function shiftsave(){
-    let url = 'shiftsave';
-    let errmsg = 'Save Failed';
+    setsprops(s(1,'Saving Shifts...'));
 
-    fun.genreq(url,{shifts:Array.from(document.getElementById('inputs').children).slice(0,8).map((e) => e.value),store:document.getElementById('i10')}).then(
+    fun.genreq('shiftsave',{shifts:Array.from(document.getElementById('inputs').children).slice(0,8).map((e) => e.value),store:fun.txtbox('i10')}).then(
       jso => setsprops(s(1,['Shifts Saved'])),
-      err => {throw Error(errmsg,{cause:err});}
-    ).catch(err=>{
-      setsprops(s(1,[errmsg]));
-      console.error(err);
-    });
+      err => {throw Error('Save Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
+  function shiftv(){
   }
 
   function storeasg(){
+    setsprops(s(1,['Assigning...']));
+
+    fun.genreq('storeasg',{emp:fun.txtbox('i0'),store:fun.txtbox('i1')}).then(
+      jso => rsuc('Assigned',null,null),
+      err => {throw Error('Assignment Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function storec(){
@@ -368,25 +371,43 @@ export default function Home(){
   }
 
   function storel(){
+    setsprops(s(1,['Getting Stores...']));
+
+    fun.genreq('storel',null).then(
+      jso => rsuc('Stores',3,jso.map(e => e.id)),
+      err => {throw Error('Get Stores Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
+  function storelas(){
+
     function mklist(jso){
       let out = ['Employee','Store'];
       jso.forEach(e => {out = out.concat([e.emp,e.store]);});
       return out;
     }
 
-    fun.genreq('storel',{store:document.getElementById('i1').value,emp:document.getElementById('i0').value}).then(
+    setsprops(s(1,['Getting Assignments...']));
+
+    fun.genreq('storelas',{store:fun.txtbox('i1'),emp:fun.txtbox('i0')}).then(
       jso => rsuc('Store Assignments',2,mklist(jso)),
       err => {throw Error('Get stores failed',{cause:err});}
     ).catch(rfail);
   }
 
   function storeuas(){
+    setsprops(s(1,['Unassigning...']));
+
+    fun.genreq('storeuas',{emp:fun.txtbox('i0'),store:fun.txtbox('i1')}).then(
+      jso => rsuc('Unassigned',null,null),
+      err => {throw Error('Unassignment Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function termconns(){
     let url='reset';
     let errmsg='Reset Failed';
-    let conf = document.getElementById('i0').value
+    let conf = fun.txtbox('i0');
 
     if(conf !== 'RESET')
       setsprops(s(1,['Type "RESET" and press button again']));
@@ -398,9 +419,6 @@ export default function Home(){
         err => {throw Error(errmsg,{cause:err});}
       ).catch(rfail);
     }
-  }
-
-  function vshifts(){
   }
 
 /***

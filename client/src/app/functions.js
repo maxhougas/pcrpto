@@ -30,33 +30,41 @@ export function stripsec(t){
 export function ms(t){
   return Date.parse('1970-01-01 '+t+'Z');
 }
-export function localtime(t){
+/*export function localtime(t){
   return (t.slice(0,16).replace('T',' '));
 }
+*/
 export function yurptime(t){
   return t.slice(8,10)+t.slice(4,8)+t.slice(0,4)+' '+t.slice(11,13)+t.slice(13,16);
 }
-export function tfromd(d){
+/*export function tfromd(d){
   return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+' '+d.getHours()+' '+d.getMinutes();
 }
-export function datefromn(n){
+*/
+/*export function datefromn(n){
   let d = new Date(n);
   return ''+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 }
+*/
 export function yurpdatefromn(n){
   let d = new Date(n);
   return d.getDate()+'-'+(d.getMonth()+1)+'-'+d.getFullYear();
 }
-export function datefroms(t){
+/*export function datefroms(t){
   return s.sclice(0,10).replaceAll(s.charAt(4),'');
 }
-
-export function numtime(t){
+*/
+/*export function numtime(t){
   return Number(t.slice(0,-8).replace(/[:T-]/g,''));
 }
+*/
 
 export function tobase64(s){
   return Buffer.from(s).toString('Base64');
+}
+
+export function txtbox(id){
+  return document.getElementById(id).value;
 }
 
 export function genreq(u,b){

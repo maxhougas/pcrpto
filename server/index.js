@@ -413,6 +413,18 @@ app.post("/shiftsave",(req,res)=>{
 });
 
 app.post("/storeasg",(req,res)=>{
+  console.log('Unassign: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query("INSERT INTO storeemps(store,emp) VALUES ('"+sanitize(req.body.store)+"','"+sanitize(req.body.emp)+"')"),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Query failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
 });
 
 app.post("/storec",(req,res)=>{
@@ -425,7 +437,22 @@ app.post("/storel",(req,res)=>{
   console.log('List stores: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
   gtok(req).then(
-    tok => pools[tok[1]].query('SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+req.body.store+"'" : ((req.body.emp) ? " WHERE emp = '"+req.body.emp+"'" : ''))),
+    tok => pools[tok[1]].query('SELECT id FROM stores'),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:jso[0],err:null}),
+    err => {throw Error('Query failed',{err:err});}
+  ).catch(err=>{
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/storelas",(req,res)=>{
+  console.log('List assignments: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query('SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+sanitize(req.body.store)+"'" : ((req.body.emp) ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : ''))),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
     jso => res.json({d:jso[0],err:null}),
@@ -437,6 +464,22 @@ app.post("/storel",(req,res)=>{
 });
 
 app.post("/storeuas",(req,res)=>{
+  console.log('Unassign: '+(req.body.uname||'unknown')+' @ '+req.ip);
+
+  gtok(req).then(
+    tok => pools[tok[1]].query("DELETE FROM storeemps WHERE store = '"+sanitize(req.body.store)+"' AND emp = '"+sanitize(req.body.emp)+"'"),
+    err => {throw Error('Get token failed',{cause:err});}
+  ).then(
+    jso => res.json({d:null,err:null}),
+    err => {throw Error('Query failed',{cause:err});}
+  ).catch(err => {
+    console.error(err);
+    res.json({err:estackstring(err)});
+  });
+});
+
+app.post("/storevas",(req,res)=>{
+
 });
 
 app.post("/whoami",(req,res)=>{
