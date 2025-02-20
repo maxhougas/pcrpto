@@ -296,7 +296,7 @@ app.post("/dayd",(req,res)=>{
 });
 
 app.post("/dayl",(req,res)=>{
-  genq(req,res,"SELECT * FROM holiday ORDER BY date,store");
+  genq(req,res,'SELECT * FROM holiday'+(req.body.store?" WHERE store = '"+sanitize(req.body.store)+"'":'')+' ORDER BY date,store');
 });
 
 app.post("/days",(req,res)=>{
@@ -335,6 +335,12 @@ app.post("/reqs",(req,res)=>{
 
 app.post("/reql",(req,res)=>{
   genq(req,res,'SELECT * FROM pto'+ (gusr(req)[1]?'':" WHERE emp = '"+sanitize(req.body.uname)+"'"));
+});
+
+app.post("/reqbystore",(req,res)=>{
+/*  select pto.emp,pto.startdate,pto.enddate from pto join storeemps on (pto.emp = storeemps.emp) where storeemps.store = sanitize(req.body.store)
+*/
+  genq(req,res,"SELECT pto.emp,pto.startdate,pto.enddate FROM pto JOIN storeemps ON (pto.emp = storeemps.emp) WHERE storeemps.store = '"+sanitize(req.body.store)+"'");
 });
 
 app.post("/reset",(req,res)=>{

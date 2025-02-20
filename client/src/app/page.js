@@ -328,8 +328,8 @@ export default function Home(){
 
     setsprops(s(1,['Generating Conflicts...']));
 
-    Promise.all([fun.genreq('shiftload',{store:fun.txtbox('i10')}),fun.genreq('reql',null)]).then(
-      jso => fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0])),jso[1]),
+    Promise.all([fun.genreq('shiftload',{store:fun.txtbox('i10')}),fun.genreq('reqbystore',{store:fun.txtbox('i10')}),fun.genreq('dayl',{store:fun.txtbox('i10')})]).then(
+      jso => fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),
       err => {throw Error('Get default shifts failed',{cause:err});}
     ).then(
       cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf)),
