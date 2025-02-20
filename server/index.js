@@ -15,7 +15,8 @@ const NIP = process.env.NIP || '%';
 const BOSPAS = process.env.BOSPAS || 'bossman';
 const EMPPAS = process.env.EMPPAS || 'employeeman';
 const CRTPAS = process.env.CRTPAS || 'deewee';
-const CLIPATH = '/home/user/pcrpto/client/out';
+const CLIPATH = process.env.CLIPATH || '/home/user/pcrpto/client/out';
+const DEFPAS = process.env.DEFPAS || 'default';
 
 /***
  S001 START NON-ROUTE MIDDLEWARE
@@ -27,7 +28,6 @@ app.use((req,res,next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
 });
-
 app.use(express.static(CLIPATH));
 app.use(express.json());
 
@@ -52,7 +52,7 @@ console.log('Debug routes registered');
 
 let pools = [];
 
-let usr = {
+const usr = {
    uid:[],
    typ:[],
    ips:[],
@@ -90,6 +90,14 @@ function gensuc(d,res){
   res.json({d:d,err:null});
 }
 
+function gusr(req){
+  let i = usr.uid.indexOf(req.body.uname);
+  if(i !== -1 &&  req.body.tok === usr.tok[i])
+    return [usr.uid[i],usr.typ[i],usr.ips[i],usr.iks[i],usr.tok[i]];
+  else
+    return [];
+}
+
 function mktok(){
   let tok;
   let inuse;
@@ -121,9 +129,18 @@ function purger(){
   console.log('All user tokens purged');
 }
 
+function rfail(res,err = Error('No available information')){
+  console.error(err);
+  res.json({err:estackstring(err)});
+}
+
+function rsuc(res,d = null){
+  res.json({d:d,err:null});
+}
+
 function sanitize(q){
-  if(q) return q.replaceAll(" ","_");
-  else throw Error('Empty String');
+  if(q) return q.replaceAll(' ','_');
+  else return '_';
 };
 
 console.log('Helper functions defined');
@@ -157,22 +174,16 @@ function dec(ik,enc){
   ));
 }
 
-function genq(req,res,q){
-  console.log(req.originalURL+': '+(req.body.uname||'unknown')+' @ '+req.ip);
+function genq(req,res,q,pool = null){
+  console.log(req.url+': '+(req.body.uname||'unknown')+' @ '+req.ip);
 
-  return Promise.resolve(i !== -1 && usr.tok[i] === req.body.tok).then(
-    fnd => {if(fnd) return [usr.uid[i],usr.typ[i],usr.ips[i],usr.iks[i]]; else throw Error('Request-token mismatch');},
-    err => {throw Error('Equlaity test should not fail');}
-  ).then(
-    tok => pools[tok[1]].query(q),
+  return gtok(req).then(
+    tok => pools[pool || tok[1]].query(q),
     err => {throw Error('Token failed',{cause:err});}
   ).then(
-    sql => res.json({d:sql[0],err:null}),
+    sql => rsuc(res,sql[0]), /*res.json({d:sql[0],err:null}),*/
     err => {throw Error('Query failed',{cause:err});}
-  ).catch(err=>{
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  ).catch(err => rfail(res,err));
 }
 
 function gtok(req){
@@ -185,13 +196,13 @@ function gtok(req){
 }
 
 function isadmin(empid){
-  return pools[1].query("SELECT id,adm FROM employees WHERE id = '"+sanitize(empid)+"'").then(
+  return pools[1].query("SELECT adm FROM employees WHERE id = '"+sanitize(empid)+"'").then(
     jso => {if(jso[0] && jso[0][0]) return jso[0][0].adm; else throw Error(empid+' not registered');},
     err => {throw Error('Query failed',{cause:err});}
   );
 }
 
-https://www.youtube.com/@StratEdgyProductionsconsole.log('Promises defined');
+console.log('Promises defined');
 
 /***
  E005 END PROMISES
@@ -269,7 +280,7 @@ app.post("/cpass",(req,res)=>{
     tok => Promise.all([dec(tok[3],req.body.opass),dec(tok[3],req.body.npass),dec(tok[3],req.body.cpass)]),
     err => {throw Error('Get token failed',{cause:err});}
   ).then(
-    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && req.body.cname === req.body.uname) return pools[1].query("UPDATE employees SET pass=PASSWORD('"+sanitize(pas[1])+"') WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas[0])+sanitize(req.body.uname)+"')"); else throw Error('User name or password mismatch');},
+    pas => {if(pas[0] && pas[1] && pas[2] && pas[1] === pas[2] && req.body.cname === req.body.uname) return pools[1].query("UPDATE employees SET pass=PASSWORD('"+sanitize(pas[1])+sanitize(req.body.uname)+"') WHERE id = '"+sanitize(req.body.uname)+"' AND pass = PASSWORD('"+sanitize(pas[0])+sanitize(req.body.uname)+"')"); else throw Error('User name or password mismatch');},
     err => {throw Error('Decryption failed',{cause:err});}
   ).then(
     jso => res.json({d:null,err:null}),
@@ -280,253 +291,100 @@ app.post("/cpass",(req,res)=>{
   });
 });
 
-app.post("/empc",(req,res)=>{
-  console.log('Create user: '+(req.body.uname||'unknown')+' @ '+req.ip);
+app.post("/dayd",(req,res)=>{
+  genq(req,res,"DELETE FROM holiday WHERE date = '"+sanitize(req.body.date)+"' AND store = '"+sanitize(req.body.store)+"'");
+});
 
-  gtok(req).then(
-    tok => pools[tok[1]].query("INSERT INTO employees(id,pass) VALUES ('"+sanitize(req.body.nuname)+"', PASSWORD('default"+sanitize(req.body.nuname)+"'))"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err)
-    res.json({err:estackstring(err)});
-  });
+app.post("/dayl",(req,res)=>{
+  genq(req,res,"SELECT * FROM holiday ORDER BY date,store");
+});
+
+app.post("/days",(req,res)=>{
+  genq(req,res,"REPLACE holiday(date,store,start,sc,end) VALUES ('"+sanitize(req.body.date)+"','"+sanitize(req.body.store)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.sc)+"','"+sanitize(req.body.end)+"')");
+});
+
+app.post("/empc",(req,res)=>{
+  genq(req,res,"INSERT INTO employees(id,pass) VALUES ('"+sanitize(req.body.nuname)+"', PASSWORD('"+DEFPAS+sanitize(req.body.nuname)+"'))");
 });
 
 app.post("/empd",(req,res)=>{
-  console.log('Delete user: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("SELECT adm FROM employees WHERE id = '"+sanitize(req.body.dname)+"'"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    adm => {if(adm[0] && adm[0][0].adm) throw Error('Delete admin blocked'); else return pools[1].query("DELETE FROM employees WHERE id = '"+sanitize(req.body.dname)+"' AND adm = FALSE");},
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,"DELETE FROM employees WHERE id = '"+sanitize(req.body.dname)+"' AND adm = FALSE");
 });
 
 app.post("/empl",(req,res)=>{
-  console.log('List employees: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("SELECT id FROM employees WHERE adm = FALSE"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,'SELECT id FROM employees WHERE adm = FALSE');
 });
 
 app.post("/reqp",(req,res)=>{
-  console.log('Purge requests: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => {if(req.body.checkphrase === 'PURGE') return pools[tok[1]].query('TRUNCATE pto'); else throw Error('Checkphrase mismatch')},
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json(estackstring(err));
-  });
+  if(req.body.checkphrase === 'PURGE')
+    genq(req,res,'TRUNCATE pto');
+  else 
+    rfail(res,Error('Checkphrase mismatch'));
 });
 
 app.post("/reqr",(req,res)=>{
-  console.log('Delete pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query('DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(tok[1]?'':" AND emp = '"+sanitize(req.body.uname)+"'")),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Delete failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,'DELETE FROM pto WHERE id = '+sanitize(req.body.id)+(gusr(req)[1]?'':" AND emp = '"+sanitize(req.body.uname)+"'"));
 });
 
 app.post("/reqs",(req,res)=>{
-  console.log('Submit pto request: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => {if(tok[1]) throw Error('Blocked admin submission'); else return pools[0].query("INSERT INTO pto (emp,startdate,enddate) values ('"+sanitize(req.body.uname)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");},
-    err => {throw Error('Get token failed',{cause,err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+ if(gusr(req)[1])
+   rfail(res,Error('Blocked admin submission'));
+ else
+   genq(req,res,"INSERT INTO pto (emp,startdate,enddate) values ('"+sanitize(req.body.uname)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.end)+"')");
 });
 
 app.post("/reql",(req,res)=>{
-  console.log('List pto requests: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query('SELECT * FROM pto'+ (tok[1]?'':" WHERE emp = '"+sanitize(req.body.uname)+"'")),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get requests failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,'SELECT * FROM pto'+ (gusr(req)[1]?'':" WHERE emp = '"+sanitize(req.body.uname)+"'"));
 });
 
 app.post("/reset",(req,res)=>{
   console.log('Reset: '+(req.body.uname||'unknown')+' @ '+req.ip);
 
-  gtok(req).then(
-    tok => {if(tok[1] && req.body.checkphrase === 'RESET') {purger(); res.json({d:null,err:null});} else throw Error('Checkphrase mismatch or nonadmin user');},
-    err => {throw Error('Get token failed',{cause:err});}
-  ).catch(err => {
-   console.error(err);
-   res.json({err:estackstring(err)});
-  });
+  if(gusr(req)[1] && eq.body.checkphrase === 'RESET'){
+    purgr();
+    rsuc(res,null);
+  }else
+    rfail(res,Error('Nonadmin user or checkphrase mismatch'));
 });
 
 app.post("/shiftload",(req,res)=>{
-  console.log('Load shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Get shifts failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
-
+  genq(req,res,"SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'");
 });
 
 app.post("/shiftsave",(req,res)=>{
-  console.log('Save shifts: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("UPDATE stores SET ustart='"+sanitize(req.body.shifts[0])+
-                                               "',wstart='"+sanitize(req.body.shifts[1])+
-                                               "',sstart='"+sanitize(req.body.shifts[2])+
-                                               "',usc   ='"+sanitize(req.body.shifts[3])+
-                                               "',wsc   ='"+sanitize(req.body.shifts[4])+
-                                               "',ssc   ='"+sanitize(req.body.shifts[5])+
-                                               "',uend  ='"+sanitize(req.body.shifts[6])+
-                                               "',wend  ='"+sanitize(req.body.shifts[7])+
-                                               "',send  ='"+sanitize(req.body.shifts[8])+"' WHERE id = '"+req.body.store+"'"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Save failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,"UPDATE stores SET ustart='"+sanitize(req.body.shifts[0])+
+                               "',wstart='"+sanitize(req.body.shifts[1])+
+                               "',sstart='"+sanitize(req.body.shifts[2])+
+                               "',usc   ='"+sanitize(req.body.shifts[3])+
+                               "',wsc   ='"+sanitize(req.body.shifts[4])+
+                               "',ssc   ='"+sanitize(req.body.shifts[5])+
+                               "',uend  ='"+sanitize(req.body.shifts[6])+
+                               "',wend  ='"+sanitize(req.body.shifts[7])+
+                               "',send  ='"+sanitize(req.body.shifts[8])+"' WHERE id = '"+req.body.store+"'");
 });
 
 app.post("/storeasg",(req,res)=>{
-  console.log('Unassign: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("INSERT INTO storeemps(store,emp) VALUES ('"+sanitize(req.body.store)+"','"+sanitize(req.body.emp)+"')"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,"INSERT INTO storeemps(store,emp) VALUES ('"+sanitize(req.body.store)+"','"+sanitize(req.body.emp)+"')");
 });
 
 app.post("/storec",(req,res)=>{
-  console.log('Create Store: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("INSERT INTO stores(id) VALUES('"+sanitize(req.body.store)+"')"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,e:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err=>{
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,"INSERT INTO stores(id) VALUES('"+sanitize(req.body.store)+"')");
 });
 
 app.post("/stored",(req,res)=>{
-   console.log('Delete store : '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-   gtok(req).then(
-     tok => pools[tok[1]].query("DELETE FROM stores WHERE id = '"+sanitize(req.body.store)+"'"),
-     err => {throw Error('Get token failed',{cause:err});}
-   ).then(
-     jso => res.json({d:null,err:null}),
-     err => {throw Error('Query failed',{cause:err});}
-   ).catch(err=>{
-     console.log(err);
-     res.json({err:estackstring(err)});
-   });
+  genq(req,res,"DELETE FROM stores WHERE id = '"+sanitize(req.body.store)+"'");
 });
 
 app.post("/storel",(req,res)=>{
-  console.log('List stores: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query('SELECT id FROM stores'),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('Query failed',{err:err});}
-  ).catch(err=>{
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,'SELECT id FROM stores');
 });
 
 app.post("/storelas",(req,res)=>{
-  console.log('List assignments: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query('SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+sanitize(req.body.store)+"'" : ((req.body.emp) ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : ''))),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:jso[0],err:null}),
-    err => {throw Error('List stores failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,'SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+sanitize(req.body.store)+"'" : ((req.body.emp) ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : '')));
 });
 
 app.post("/storeuas",(req,res)=>{
-  console.log('Unassign: '+(req.body.uname||'unknown')+' @ '+req.ip);
-
-  gtok(req).then(
-    tok => pools[tok[1]].query("DELETE FROM storeemps WHERE store = '"+sanitize(req.body.store)+"' AND emp = '"+sanitize(req.body.emp)+"'"),
-    err => {throw Error('Get token failed',{cause:err});}
-  ).then(
-    jso => res.json({d:null,err:null}),
-    err => {throw Error('Query failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  genq(req,res,"DELETE FROM storeemps WHERE store = '"+sanitize(req.body.store)+"' AND emp = '"+sanitize(req.body.emp)+"'");
 });
 
 app.post("/storevas",(req,res)=>{
@@ -536,13 +394,7 @@ app.post("/storevas",(req,res)=>{
 app.post("/whoami",(req,res)=>{
   console.log('Who is: '+req.ip);
 
-  gtok(req).then(
-    tok => res.json({d:{mode:tok[1]?'admin':'employee'},err:null}),
-    err => {throw error('Get token failed',{cause:err});}
-  ).catch(err => {
-    console.error(err);
-    res.json({err:estackstring(err)});
-  });
+  rsuc(res,{mode:(gusr(req)[1]?'admin':'employee')});
 });
 
 console.log('Production routes registered');

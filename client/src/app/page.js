@@ -67,7 +67,7 @@ export default function Home(){
       itxt:['Start:YYYYMMDDHHMMSS','End:YYYYMMDDHHMMSS','Ausweis']
     });
     setbprops({grid:2,
-      handler:[ reqs,            reqr,            reqv,           cpasspage,        logout],
+      handler:[ reqs,            reqr,            reql,           cpasspage,        logout],
       btxt   :['Submit Request','Revoke Request','View Requests','Change Password','Log Out']
     });
   }
@@ -85,7 +85,7 @@ export default function Home(){
   function mreq(){
     setsprops({grid:1,status:['Manage Requests']});
     setoprops(null);
-    setiprops({grid:1,type:['number'],itxt:['Ausweis']});
+    setiprops({grid:1,type:['text'],itxt:['Ausweis']});
     setbprops({grid:3,handler:[reql,reqr,reqp,bossmode,logout],btxt:['List Requests','Remove Request','Purge Requests','Back','Log Out']});
   }
 
@@ -99,14 +99,14 @@ export default function Home(){
             'Sunday Ende','Weekday Ende','Saturday Ende','Start Date','Store']
     });
     setbprops({grid:3,
-      handler:[ shiftload,    shiftsave,    shiftmk,         sday,              shiftv,       mainpage,logout],
-      btxt   :['Load Shifts','Save Shifts','Generate Month','Save Special Day','View Shifts','Back',  'Log Out']
+      handler:[ shiftload,    shiftsave,    shiftmk,         dayl,           days,          dayd,       mainpage,logout],
+      btxt   :['Load Shifts','Save Shifts','Generate Month','List Holidays','Save Holiday','Delete Holiday','Back',  'Log Out']
     });
   }
 
   function rsuc(status = null,ogrid = null,oarr = null){
-    setsprops(status?s(1,Array.isArray(status)?status:[status]):null);
-    setoprops((ogrid && oarr && oarr.toString())?o(ogrid,oarr):null);
+    setsprops(status?s(1,status):null);
+    setoprops(ogrid?o(ogrid,oarr):(ogrid===null?null:oprops));
   }
   function rfail(err){
      setsprops(s(1,err.message));
@@ -171,7 +171,7 @@ export default function Home(){
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
   }
-
+*/
   function cpass(){
     let url = 'cpass'
     let errmsg = 'Password Change Failed';
@@ -193,51 +193,73 @@ export default function Home(){
       err => {throw Error(errmsg,{cause:err});}
     ).catch(rfail);
   }
-*/
+
+  function dayd(){
+    setsprops(s(1,['Deleting Holiday...']));
+
+    fun.genreq('dayd',{date:fun.txtbox('i9'),store:fun.txtbox('i10')}).then(
+      jso => rsuc(['Holiday Deleted']),
+      err => {throw Error('Save Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
+  function dayl(){
+
+    function mklist(jso){
+       let out = ['Date','Store','Start','Shift Change','End'];
+       jso.forEach(e => out = out.concat([fun.yurptime(e.date).slice(0,10),e.store,e.start,e.sc,e.end]));
+       return out;
+    }
+
+    setsprops(s(1,['Getting Holidays...']));
+
+    fun.genreq('dayl',null).then(
+      jso => rsuc(['Registered Holidays'],5,mklist(jso)),
+      err => {throw Error('Get Holidays Failed',{cause:err});}
+    ).catch(rfail)
+  }
+
+  function days(){
+    setsprops(s(1,['Saving Holiday...']));
+
+    fun.genreq('days',{date:fun.txtbox('i9'),store:fun.txtbox('i10'),start:fun.txtbox('i0'),sc:fun.txtbox('i3'),end:fun.txtbox('i6')}).then(
+      jso => rsuc(['Holiday Saved']),
+      err => {throw Error('Save Holiday Failed',{cause:err});}
+    ).catch(rfail);
+  }
 
   function empc(){
-    let url = 'empc';
-    let errmsg = 'Create User Failed';
-    setsprops(s(1,['Creating User...']));
+    setsprops(s(1,['Creating Employee...']));
 
-    fun.genreq(url,{nuname:fun.txtbox('i0')}).then(
-      jso => setsprops(s(1,['User Created'])),
-      err => {throw Error(errmsg,{cause:err});}
+    fun.genreq('empc',{nuname:fun.txtbox('i0')}).then(
+      jso => rsuc(['Employee Created']),
+      err => {throw Error('Create Employee Failed',{cause:err});}
     ).catch(rfail);
   }
 
   function empd(){
-    let url = 'empd';
-    let errmsg = 'Delete User Failed';
-    setsprops(s(1,'Deleting User...'));
+    setsprops(s(1,'Deleting Employee...'));
 
-    fun.genreq(url,{dname:fun.txtbox('i0')}).then(
-      jso => setsprops(s(1,['User Deleted'])),
-      err => {throw Error(errmsg,{cause:err});}
+    fun.genreq('empd',{dname:fun.txtbox('i0')}).then(
+      jso => rsuc(['Employee Deleted']),
+      err => {throw Error('Delete Employee Failed',{cause:err});}
     ).catch(rfail);
   }
 
   function empl(){
-    let url = 'empl';
-    let errmsg = 'Get Users Failed';
-    setsprops(s(1,['Retrieving Data...']));
+    setsprops(s(1,['Getting Employees...']));
 
     function mklist(usrs){
       return usrs.map(e => e.id);
     }
 
-    fun.genreq(url,null).then(
-      jso => rsuc('Registered Employees',2,mklist(jso)),
-      err => {throw Error(errmsg,{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,[errmsg]));
-      console.error(err);
-    });
+    fun.genreq('empl',null).then(
+      jso => rsuc('Registered Employees',3,jso.map(e=>e.id)),
+      err => {throw Error('Get Employees Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function reql(){
-    let url = 'reql';
-    let errmsg = 'Get Requests Failed';
     setsprops(s(1,['Getting Requests...']));
 
     function mklist(jso){
@@ -246,80 +268,52 @@ export default function Home(){
       return(lst);
     }
 
-    fun.genreq(url,null).then(
-      jso => {setsprops(s(1,['Active PTO Requests']));setoprops(o(4,mklist(jso)));},
-      err => {throw Error(errmsg,{cause:err});}
-    ).catch(err => {
-      setsprops(s(1,[errmsg]));
-      setoprops(null);
-      console.error(err);
-    });
+    fun.genreq('reql',null).then(
+      jso => rsuc(['Active PTO Requests'],4,mklist(jso)),
+      err => {throw Error('Get Requests Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function reqp(){
-    let url = 'reqp'
-    let errmsg = 'Purge Failed';
-    let conf = fun.txtbox('i0');
 
-    if(conf !== 'PURGE')
+    if(fun.txtbox('i0') !== 'PURGE')
       setsprops(s(1,['Type "PURGE" and press button again']));
     else{
       setsprops(s(1,['Purging...']));
-      fun.genreq(url,{checkphrase:conf}).then(
-        jso => setsprops(s(1,['Requests Purged'])),
-        err => {throw Error(errmsg,{cause:err});}
-      ).catch(err => {
-        setsprops(s(1,[errmsg]));
-        console.error(err);
-      });
+      fun.genreq('reqp',{checkphrase:fun.txtbox('i0')}).then(
+        jso => rsuc(['Requests Purged']),
+        err => {throw Error('Purge Failed',{cause:err});}
+      ).catch(rfail);
     }
   }
 
   function reqr(){
-    let id = document.getElementsById('inputs').children.item(document.getElementById('inputs').children.length - 1).value;
+    let id = document.getElementById('inputs').children.item(document.getElementById('inputs').children.length - 1).value;
 
-    if(id){
-      let url = 'reqr'
-      let errmsg = 'Delete Failed';
-      setsprops(s(1,['Deleting...']));
+    let url = 'reqr'
+    let errmsg = 'Delete Failed';
+    setsprops(s(1,['Deleting...']));
 
-      fun.genreq(url,{id:id}).then(
-        jso => setsprops(s(1,['Request Deleted'])),
-        err => {throw Error(errmsg,{cause:err});}
-      ).catch(err => {
-          setsprops(s(1,[errmsg]));
-          console.error(err);
-      });
-    }
-    else setsprops(s(1,['Failed: Empty String']));
+    fun.genreq('reqr',{id:id}).then(
+      jso => rsuc(['Request Deleted']),
+      err => {throw Error('Delete Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function reqs(){
-    let start = fun.txtbox('i0');
-    let end = fun.txtbox('i1');
+    setsprops(s(1,['Submitting...']));
 
-    if((start) && (end) && Date.parse(start) < Date.parse(end)){
-      let url = 'reqs'
-      setsprops(s(1,['Submitting...']));
-
-      fun.genreq(url,{start:start,end:end}).then(
-        jso => setsprops(s(1,['Request Submitted'])),
-        err => {throw Error('Request Submission Failed',{cause:err});}
-      ).catch(err => {
-         setsprops(s(1,['Request Submission Failed']));
-         console.error(err);
-      });
-    } else setsprops(s(1,['Failed: Empty String or Invalid Range']));
-  }
-
-  function sday(){
+    fun.genreq('reqs',{start:fun.txtbox('i0'),end:fun.txtbox('i1')}).then(
+      jso => rsuc(['Request Submitted']),
+      err => {throw Error('Request Submission Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function shiftload(){
     setsprops(s(1,['Getting Shifts...']));
 
     fun.genreq('shiftload',{store:fun.txtbox('i10')}).then(
-      jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);},
+      jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);setsprops(s(1,['Shifts Loaded']));},
       err => {throw Error('Get Shifts Failed',{cause:err});}
     ).catch(rfail);
   }
@@ -346,13 +340,10 @@ export default function Home(){
   function shiftsave(){
     setsprops(s(1,'Saving Shifts...'));
 
-    fun.genreq('shiftsave',{shifts:Array.from(document.getElementById('inputs').children).slice(0,8).map((e) => e.value),store:fun.txtbox('i10')}).then(
+    fun.genreq('shiftsave',{shifts:Array.from(document.getElementById('inputs').children).slice(0,9).map((e) => e.value),store:fun.txtbox('i10')}).then(
       jso => setsprops(s(1,['Shifts Saved'])),
       err => {throw Error('Save Failed',{cause:err});}
     ).catch(rfail);
-  }
-
-  function shiftv(){
   }
 
   function storeasg(){
@@ -417,20 +408,13 @@ export default function Home(){
   }
 
   function termconns(){
-    let url='reset';
-    let errmsg='Reset Failed';
-    let conf = fun.txtbox('i0');
 
-    if(conf !== 'RESET')
-      setsprops(s(1,['Type "RESET" and press button again']));
-    else{
-      setsprops(s(1,['Terminating...']));
+    setsprops(s(1,['Terminating...']));
 
-      fun.genreq(url,{checkphrase:conf}).then(
-        jso => loginpage(),
-        err => {throw Error(errmsg,{cause:err});}
-      ).catch(rfail);
-    }
+    fun.genreq('reset',{checkphrase:'RESET'}).then(
+      jso => loginpage(),
+      err => {throw Error('Reset Failed',{cause:err});}
+    ).catch(rfail);
   }
 
 /***
