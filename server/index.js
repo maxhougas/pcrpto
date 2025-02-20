@@ -8,10 +8,10 @@ const crypto = require("crypto");
 const { Buffer } = require("buffer");
 const fs = require('fs');
 
-const PORT = process.env.PORT || 5000;
 const MIP = process.env.MIP || '172.17.0.1';
 const MPORT = process.env.MPORT || '3306';
 const NIP = process.env.NIP || '%';
+const PORT = process.env.NPORT || 5000;
 const BOSPAS = process.env.BOSPAS || 'bossman';
 const EMPPAS = process.env.EMPPAS || 'employeeman';
 const CRTPAS = process.env.CRTPAS || 'deewee';
@@ -409,7 +409,7 @@ console.log('Production routes registered');
  E006 END PRODUCTION ROUTES
  ***/
 
-https.createServer({key:fs.readFileSync('serverkey.pem'),passphrase:CRTPAS,cert:fs.readFileSync('servercrt.pem')},app).listen(PORT, () => {
+https.createServer({key:fs.readFileSync('serverkey.pem'),passphrase:CRTPAS,cert:fs.readFileSync('servercrt.pem')},app).listen(NPORT, () => {
   pools[0] = mysql.createPool(poolconf('ptoemployee',EMPPAS));
   pools[1] = mysql.createPool(poolconf('ptoboss',BOSPAS));
   console.log('Server listening on '+PORT);
