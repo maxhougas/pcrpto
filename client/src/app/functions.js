@@ -1,4 +1,5 @@
-export const PORT = 5000;
+export const PRODUCTION = 0;
+export const NPORT = 5000;
 export const DAY = 86400000;
 export const HOUR = 3600000;
 export const MINUTE = 60000;
@@ -68,7 +69,7 @@ export function txtbox(id){
 }
 
 export function genreq(u,b){
-  return fetch('https://'+document.domain+':'+PORT+'/'+u,{
+  return fetch((PRODUCTION?document.URL:'https://'+document.domain+':'+NPORT+'/')+u,{
     method:'POST',
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({...b,uname:G.uname,tok:G.tok})
