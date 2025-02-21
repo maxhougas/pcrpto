@@ -206,7 +206,7 @@ export default function Home(){
   function dayl(){
 
     function mklist(jso){
-       let out = ['Date','Store','Start','Shift Change','End'];
+       let out = ['Date D-M-Y','Store','Start','Shift Change','End'];
        jso.forEach(e => out = out.concat([fun.yurptime(e.date).slice(0,10),e.store,e.start,e.sc,e.end]));
        return out;
     }
