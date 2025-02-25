@@ -8,22 +8,24 @@ const crypto = require("crypto");
 const { Buffer } = require("buffer");
 const fs = require('fs');
 
+const PRODUCTION = 0;
+
 const MIP = process.env.MIP || '172.17.0.1';
 const MPORT = process.env.MPORT || '3306';
 const NIP = process.env.NIP || '%';
 const NPORT = process.env.NPORT || 5000;
-const BOSPAS = process.env.BOSPAS || 'bossman';
-const EMPPAS = process.env.EMPPAS || 'employeeman';
-const CRTPAS = process.env.CRTPAS || 'deewee';
+const BOSPAS = process.env.BOSPAS || 'bospas';
+const EMPPAS = process.env.EMPPAS || 'emppas';
+const CRTPAS = process.env.CRTPAS || 'crtpas';
 const CLIPATH = process.env.CLIPATH || '/home/user/pcrpto/client/out';
-const DEFPAS = process.env.DEFPAS || 'default';
+const DEFPAS = process.env.DEFPAS || 'defpas';
 
 /***
  S001 START NON-ROUTE MIDDLEWARE
  ***/
 
 app.use((req,res,next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://10.0.1.49:3000');
+  if(!PRODUCTION){res.setHeader('Access-Control-Allow-Origin', 'https://10.0.1.49:3000');}
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();

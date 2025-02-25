@@ -156,6 +156,8 @@ export function genshifts(start,defaults,specials = []){
 }
 
 export function shiftconfs(shifts,ptos){
+console.log(shifts);
+console.log(ptos);
 
   let conflicts = [];
 
