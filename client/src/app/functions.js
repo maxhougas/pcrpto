@@ -125,14 +125,14 @@ export function checkconflicts(requests){
   return c;
 }
 
-export function genshifts(start,defaults,specials = []){
-
+export function genshifts(start,defaults,specials = null){
   let defs = Array(7);
-  for(let i = 0;i < 7;i++)
-    defs[i] = [
-      ms(defaults[Math.floor((i+4)/5)]),
-      (ms(defaults[Math.floor((i+4)/5)+3]) > ms(defaults[Math.floor((i+4)/5)])) ? ms(defaults[Math.floor((i+4)/5)+3]) : (ms(defaults[Math.floor((i+4)/5)+3]) + DAY),
-      (ms(defaults[Math.floor((i+4)/5)+6]) > ms(defaults[Math.floor((i+4)/5)])) ? ms(defaults[Math.floor((i+4)/5)+6]) : (ms(defaults[Math.floor((i+4)/5)+6]) + DAY),
+
+  for(let i = 4;i < 11;i++)
+    defs[i-4] = [
+       ms(defaults[Math.floor(i/5)]),
+      (ms(defaults[Math.floor(i/5)]) > ms(defaults[Math.floor(i/5)+3])) ? ms(defaults[Math.floor(i/5)+3]) + DAY : (ms(defaults[Math.floor(i/5)+3])),
+      (ms(defaults[Math.floor(i/5)]) > ms(defaults[Math.floor(i/5)+6])) ? ms(defaults[Math.floor(i/5)+6]) + DAY : (ms(defaults[Math.floor(i/5)+6])),
     ];
 
   let out = Array(35);
@@ -141,14 +141,14 @@ export function genshifts(start,defaults,specials = []){
       Date.parse(start)+defs[i%7][0]+i*DAY,
       Date.parse(start)+defs[i%7][1]+i*DAY,
       Date.parse(start)+defs[i%7][2]+i*DAY
-  ];
+  ]; 
 
   specials.forEach(special => {
     let i = Math.floor((Date.parse(special.date) - Date.parse(start))/DAY);
     if(i >= 0 && i < 35){
-      out[i][0] = Date.parse(special.date) +  ms(special.sstart);
-      out[i][1] = Date.parse(special.date) + (ms(special.sc    ) > ms(special.sstart) ? ms(special.sc  ) : (ms(special.sc  ) + DAY));
-      out[i][2] = Date.parse(special.date) + (ms(special.send  ) > ms(special.sstart) ? ms(special.send) : (ms(special.send) + DAY));
+      out[i][0] = Date.parse(special.date) +  ms(special.start);
+      out[i][1] = Date.parse(special.date) + (ms(special.start) > ms(special.sc ) ? ms(special.sc ) + DAY : (ms(special.sc )));
+      out[i][2] = Date.parse(special.date) + (ms(special.start) > ms(special.end) ? ms(special.end) + DAY : (ms(special.end)));
     }
   });
 
@@ -156,9 +156,6 @@ export function genshifts(start,defaults,specials = []){
 }
 
 export function shiftconfs(shifts,ptos){
-console.log(shifts);
-console.log(ptos);
-
   let conflicts = [];
 
   shifts.forEach(shift => {
