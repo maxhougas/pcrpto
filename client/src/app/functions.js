@@ -136,12 +136,15 @@ export function genshifts(start,defaults,specials = null){
     ];
 
   let out = Array(35);
-  for(let i = 0;i < 35;i++)
+  for(let i = 0;i < 35;i++){
+    let unix = Date.parse(start+i*DAY);
+    let dow = (new Date(unix)).getDay()
     out[i] = [
-      Date.parse(start)+defs[i%7][0]+i*DAY,
-      Date.parse(start)+defs[i%7][1]+i*DAY,
-      Date.parse(start)+defs[i%7][2]+i*DAY
-  ]; 
+      unix+defs[dow][0],
+      unix+defs[dow][1],
+      unix+defs[dow][2],
+    ]; 
+  }
 
   specials.forEach(special => {
     let i = Math.floor((Date.parse(special.date) - Date.parse(start))/DAY);
