@@ -126,6 +126,7 @@ export function checkconflicts(requests){
 }
 
 export function genshifts(start,defaults,specials = null){
+  const dstart = (new Date(start)).getUTCDay();
   let defs = Array(7);
 
   for(let i = 4;i < 11;i++)
@@ -137,13 +138,13 @@ export function genshifts(start,defaults,specials = null){
 
   let out = Array(35);
   for(let i = 0;i < 35;i++){
-    let unix = Date.parse(start+i*DAY);
-    let dow = (new Date(unix)).getDay()
+    let unix = Date.parse(start)+i*DAY;
+    let dow = (dstart+i)%7;
     out[i] = [
       unix+defs[dow][0],
       unix+defs[dow][1],
       unix+defs[dow][2],
-    ]; 
+    ];
   }
 
   specials.forEach(special => {
@@ -179,6 +180,6 @@ export function shiftconfs(shifts,ptos){
   return conflicts;
 }
 
-/***	
+/***
  E001 END FUNCTIONS
  ***/
