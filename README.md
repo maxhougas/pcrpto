@@ -1,12 +1,17 @@
-<a name="toc"/>
+<a name="top"/>
 
 # PCR Players' Club PTO request
-- [Table of Contents](#toc)
-  - [Set Up](#setup)
+- [Table of Contents](#top)
+  - [Set Up](#set-up)
     - [Environmental Variables](#environmental-variables)
     - [Docker Network](#docker-network)
+    - [Running Containers](#running-containers)
+  - [Operation](#operation)
+    - [Login Page](#login-page)
+    - [Employee Mode](#employee-mode)
+    - [Change Password](#change-password)
 
-<a name='setup'/>
+(#top)
 
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
@@ -69,13 +74,13 @@ NPORT=5000
   - ENVFILE
     - Path/name of the environment variable file you made [here](#environmental-varaibles)
 
-<a name='operation'/>
 ## Operation
+
 ### Login Page
 ![Login Page](images/loginpage.jpg)
 - Type random things into both boxes until it works
 
-## Employee Mode
+### Employee Mode
 ![Employee Mode](images/employeemode.jpg)
 - Submit Request
   - Put the start time in the left datetime box
@@ -86,7 +91,7 @@ NPORT=5000
   - Copy the ID number into the Ausweis box
   - Press Revoke Request
 
-## Change Password
+### Change Password
 ![Change Password Screen](images/changepassword.jpg)
 - Enter user name into the top left box
 - Enter current password into the top right box
