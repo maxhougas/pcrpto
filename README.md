@@ -129,7 +129,7 @@ This will prevent PAT from external networks to the database container granting 
 [top](#top)
 ### Admin Mode
 ![Admin Mode](images/adminmode.jpg)
-- [Manage Employees](#manage-employees),[Manage Requests](#manage-requests), and [Manage Shifts](#manage-shifts) are submenus.
+- [Manage Employees](#manage-employees), [Manage Requests](#manage-requests), and [Manage Shifts](#manage-shifts) are submenus.
 - [Change Password](#change-password) is identical to the employee version.
 - `Terminate Connections` will instruct the back end to purge all session tokens effectively logging everyone out.
   - This will confuse and enrage anyone who is still logged in; use with care.
