@@ -4,14 +4,12 @@
 - [Table of Contents](#toc)
   - [Set Up](#setup)
     - [Environmental Variables](#environmental-variables)
-	  - [Docker Network](#docker-network)
+    - [Docker Network](#docker-network)
 
 <a name='setup'/>
 
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
-
-<a name='environmental-variables'/>
 
 ### Environmental Variables
 - BOSPAS(bospas): PTO admin DB password
