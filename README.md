@@ -10,7 +10,9 @@
 - MPORT(3306): Port the DB listens on
 - NIP(%): IP address of the node back end
 - NPORT(5000): Port the node back end listens on
+
 It is recommended to create a environment variables file and pass it to the containers at run time
+
 The following is an example withe default values.
 ```
 BOSPAS=bospas
