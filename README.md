@@ -128,24 +128,42 @@ This will prevent PAT from external networks to the database container granting 
 ![Admin Mode](images/adminmode.jpg)
 - [Manage Employees](#manage-employees),[Manage Requests](#manage-requests), and [Manage Shifts](#manage-shifts) are submenus.
 - [Change Password](#change-password) is identical to the employee version.
-- Terminate Connections will instruct the back end to purge all session tokens effectively logging everyone out.
+- `Terminate Connections` will instruct the back end to purge all session tokens effectively logging everyone out.
   - This will confuse and enrage anyone who is still logged in; use with care.
 
 [top](#top)
 ### Manage Employees
 ![Manage Employees](images/manageemployees.jpg)
-- List Employees will display all registered employees.
-- Create Employee will create an employee with the employee id currently in the left box.
-- Delete Employee will remove an employee record from the database.
-- List Stores will display all registered stores.
-- Create Store will create a store with the store id currently in the right box.
-- Delete store will remove a store record from the database.
-- List Assignments will show which employees are assigned to which stores.
+- `List Employees` will display all registered employees.
+- `Create Employee` will create an employee with the employee id currently in the left box.
+- `Delete Employee` will remove an employee record from the database.
+- `List Stores` will display all registered stores.
+- `Create Store` will create a store with the store id currently in the right box.
+- `Delete Store` will remove a store record from the database.
+- `List Assignments` will show which employees are assigned to which stores.
   - If the left and right box are both empty, all assignments are displayed.
   - If the left box contains an employee id, assignments matching that employee id are displayed
   - If the left box is empty and the right box contains a store id, assigments matching that store id are displayed.
-- Assign Store will assign the employee id in the left box to the store id in the right box.
+- `Assign Store` will assign the employee id in the left box to the store id in the right box.
 - `Unassign Store` will remove the assignment record of the employee id in the left box to the store id in the right box.
 
 [top](#top)
+### Manage Requests
+![Manage Requests](images/managerequests.jpg)
+- `List Requests` will display all requests by all registered employees in order of request time.
+- `Remove Request` will delete the record of the request for which the request ID matches the value of the Ausweis box.
+- `Purge Reuqests` will delete all request records and reset the auto incrementing ID field.
 
+[top](#top)
+### Manage Shifts
+![Manage Shifts](images/mnageshifts.jpg)
+- `Load Shifts` will display the default shift times for the store in the Store box in the six top-right boxes.
+  - From top to bottom the times are Start of Day, Shift Change, and End of Day for weekdays and Sunday as labelled.
+- `Save Shifts` will save any alterations made to default shift times for the store in the Store box to the database.
+- `Generate Month` will generate a list of employees whose PTO requests conflict with default shifts or holiday shifts from the date specified to five weeks thereafter.
+- `List Holidays` will show all holiday shift times for the store specified in the Store box.
+- `Save Holiday` will create a holiday record for the specified date and store with the shift times specified in the three top left boxes.
+  - These boxes represent Start of Day, Shift Change, and End of Day similarly to the default shift times.
+  - To specify that there is no shift for a certain day simply declare the start and end times to be the same. For example if there is to be no first shift on New Year's Day 1990 the the top-left box and the middle-left box could both be set to 12:00 PM, and the left-third box should be set to whenever the second shift ends.
+ 
+[top](#top)
