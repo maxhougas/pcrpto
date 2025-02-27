@@ -91,12 +91,12 @@ export default function Home(){
 
   function mshifts(){
     setsprops({grid:1,status:['Manage Shifts']})
-    setoprops({grid:3,outputs:['Sunday','Weekday','Saturday']});
+    setoprops({grid:3,outputs:['Holiday','Weekday','Sunday']});
     setiprops({grid:3,
       type:['time',        'time',         'time',          'time',     'time',       'time',      
             'time',       'time',        'time',         'date',      'text'],
-      itxt:['Sunday Start','Weekday Start','Saturday Start','Sunday SC','Weekday SC','Saturday SC',
-            'Sunday Ende','Weekday Ende','Saturday Ende','Start Date','Store']
+      itxt:['Holiday Start','Weekday Start','Sunday Start','Holiday SC','Weekday SC','Sunday SC',
+            'Holiday Ende','Weekday Ende','Sunday Ende','Start Date','Store']
     });
     setbprops({grid:3,
       handler:[ shiftload,    shiftsave,    shiftmk,         dayl,           days,          dayd,       mainpage,logout],
@@ -310,25 +310,37 @@ export default function Home(){
   }
 
   function shiftload(){
+		function putvals(jso){
+		  fun.txtbox('i1',jso.wstart);
+			fun.txtbox('i4',jso.wsc);
+			fun.txtbox('i7',jso.wend);
+			fun.txtbox('i2',jso.ustart);
+			fun.txtbox('i5',jso.usc);
+			fun.txtbox('i8',jso.uend);
+		}
     setsprops(s(1,['Getting Shifts...']));
 
     fun.genreq('shiftload',{store:fun.txtbox('i10')}).then(
-      jso => {Object.values(jso[0]).forEach((e,i) => document.getElementById('inputs').children[i].value = e);setsprops(s(1,['Shifts Loaded']));},
+      jso => {putvals(jso[0]);rsuc('Shifts Loaded',3,['Holiday','Weekday','Sunday']);},
       err => {throw Error('Get Shifts Failed',{cause:err});}
     ).catch(rfail);
   }
 
   function shiftmk(){
-
     function mklist(cnfs){
-      let lst = [];
-      cnfs.forEach(e => {lst = lst.concat(e.date); lst = lst.concat('1: '+e.shift0.toString()); lst = lst.concat('2: '+e.shift1.toString());});
+      let lst = ['Date (D-M-Y)','Shift 1','Shift 2'];
+      cnfs.forEach(e => {
+				lst = lst.concat(e.date);
+				lst = lst.concat([e.shift0]);
+				lst = lst.concat([e.shift1]);
+			});
       return lst;
     }
 
     setsprops(s(1,['Generating Conflicts...']));
+		let st = fun.txtbox('i10');
 
-    Promise.all([fun.genreq('shiftload',{store:fun.txtbox('i10')}),fun.genreq('reqbystore',{store:fun.txtbox('i10')}),fun.genreq('dayl',{store:fun.txtbox('i10')})]).then(
+    Promise.all([fun.genreq('shiftload',{store:st}),fun.genreq('reqbystore',{store:st}),fun.genreq('dayl',{store:st})]).then(
       jso => fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),
       err => {throw Error('Get default shifts failed',{cause:err});}
     ).then(
@@ -338,9 +350,18 @@ export default function Home(){
   }
 
   function shiftsave(){
+		let dg = {
+		  wstart:fun.txtbox('i1'),
+			wsc   :fun.txtbox('i4'),
+			wend  :fun.txtbox('i7'),
+			ustart:fun.txtbox('i2'),
+			usc   :fun.txtbox('i5'),
+			uend  :fun.txtbox('i8'),
+			store :fun.txtbox('i10')
+	  }
     setsprops(s(1,'Saving Shifts...'));
 
-    fun.genreq('shiftsave',{shifts:Array.from(document.getElementById('inputs').children).slice(0,9).map((e) => e.value),store:fun.txtbox('i10')}).then(
+    fun.genreq('shiftsave',dg).then(
       jso => setsprops(s(1,['Shifts Saved'])),
       err => {throw Error('Save Failed',{cause:err});}
     ).catch(rfail);

@@ -360,15 +360,15 @@ app.post("/shiftload",(req,res)=>{
 });
 
 app.post("/shiftsave",(req,res)=>{
-  genq(req,res,"UPDATE stores SET ustart='"+sanitize(req.body.shifts[0])+
-                               "',wstart='"+sanitize(req.body.shifts[1])+
-                               "',sstart='"+sanitize(req.body.shifts[2])+
-                               "',usc   ='"+sanitize(req.body.shifts[3])+
-                               "',wsc   ='"+sanitize(req.body.shifts[4])+
-                               "',ssc   ='"+sanitize(req.body.shifts[5])+
-                               "',uend  ='"+sanitize(req.body.shifts[6])+
-                               "',wend  ='"+sanitize(req.body.shifts[7])+
-                               "',send  ='"+sanitize(req.body.shifts[8])+"' WHERE id = '"+req.body.store+"'");
+  genq(req,res,"UPDATE stores SET ustart='"+sanitize(req.body.ustart)+
+                               "',wstart='"+sanitize(req.body.wstart)+
+                               "',sstart='"+sanitize(req.body.wstart)+
+                               "',usc   ='"+sanitize(req.body.usc   )+
+                               "',wsc   ='"+sanitize(req.body.wsc   )+
+                               "',ssc   ='"+sanitize(req.body.wsc   )+
+                               "',uend  ='"+sanitize(req.body.uend  )+
+                               "',wend  ='"+sanitize(req.body.wend  )+
+                               "',send  ='"+sanitize(req.body.wend  )+"' WHERE id = '"+req.body.store+"'");
 });
 
 app.post("/storeasg",(req,res)=>{

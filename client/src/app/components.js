@@ -21,11 +21,19 @@ function Status({grid,status}){
 }
 
 function Outputs({grid,outputs}){
+	function Ulist({children}){
+		let items = Array.isArray(children)?children:[children];
+		return Array.isArray(children)?(
+			<ul style={{margin:0,padding:0,listStyleType:'none'}}>
+				{children.map((e,i)=><li key={i}>{e}</li>)}
+			</ul>
+		):children;
+	}
   let o = Array.isArray(outputs)?outputs:[outputs];
 
   return(
     <div key={1} id='outputs' style={{gridTemplateColumns: gcols(grid)}} className={styles.outputs}>
-      {o.map((e,i) => <div style={{gridColumn: stretch(grid,o.length,i)}} key={i} id={'o'+i}>{e}</div>)}
+      {o.map((e,i) => <div style={{gridColumn: stretch(grid,o.length,i)}} key={i} id={'o'+i}><Ulist>{e}</Ulist></div>)}
     </div>
   );
 }

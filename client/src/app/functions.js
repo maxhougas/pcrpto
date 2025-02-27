@@ -64,7 +64,8 @@ export function tobase64(s){
   return Buffer.from(s).toString('Base64');
 }
 
-export function txtbox(id){
+export function txtbox(id,nval = null){
+	if(nval) document.getElementById(id).value = nval;
   return document.getElementById(id).value;
 }
 

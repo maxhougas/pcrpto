@@ -20,6 +20,7 @@
   display: flex;
   width: 100%;
   justify-content: center;
+	align-items: center;
   background-color: rgba(var(--callout-rgb), 0.6);
   border: solid rgba(var(--callout-border-rgb), 0.3);
   border-radius: var(--border-radius);
@@ -36,8 +37,10 @@
 .outputs div {
   font-size: 24px;
   display: flex;
+	flex-direction: column;
   width: 100%;
   justify-content: center;
+	align-items: center;
   background-color: rgba(var(--callout-rgb), 0.6);
   border: solid rgba(var(--callout-border-rgb), 0.3);
   border-radius: var(--border-radius);
@@ -55,6 +58,8 @@
   font-size: 24px;
   display: flex;
   width: 100%;
+	justify-content: center;
+	align-items: center;
   border-radius: var(--border-radius);
   background-color: rgba(var(--callout-rgb), 0.6);
   border: solid rgba(var(--callout-border-rgb), 1.0);
@@ -69,8 +74,11 @@
 }
 
 .buttons button {
-  width: 100%;
   font-size: 24px;
+	display: flex;
+  width: 100%;
+	justify-content: center;
+	align-items: center;
   border-radius: var(--border-radius);
   background-color: rgba(var(--callout-rgb), 1.0);
   border: solid rgba(var(--callout-border-rgb), 1.0);
