@@ -76,6 +76,10 @@ NPORT=5000
     - The database internal port cannot be changed at this time; it must remain 3306
   - ENVFILE
     - Path/name of the environment variable file you made [here](#environmental-varaibles)
+  - CONTAINERNAME(pcrmar OR pcrpro)
+    - Abitrary name for the container; we will be using pcrmar for the database, and pcrpro for the back end
+  - TAG(mar OR pro)
+    - Tag for the image the container is being built from; mar is the database image, and pro is the back end image
 
 [top](#top)
 ## Operation
