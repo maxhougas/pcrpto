@@ -37,7 +37,6 @@
 .outputs div {
   font-size: 24px;
   display: flex;
-	flex-direction: column;
   width: 100%;
   justify-content: center;
 	align-items: center;
