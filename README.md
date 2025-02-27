@@ -11,7 +11,7 @@
     - [Employee Mode](#employee-mode)
     - [Change Password](#change-password)
 
-[#top]
+[top]
 
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
