@@ -47,9 +47,9 @@ NPORT=5000
 - The bridge network will not allow user specified IP addresses for containers.
 - Create a custom network with the following
 
-`docker network create -d bridge --subnet=172.31.0.0/28 pcrpto`
+`docker network create -d bridge --subnet=172.31.0.0/29 pcrpto`
 
-- The subnet may be altered as necessary; 172.31.0.0/28 is an example that is likely to work.
+- The subnet may be altered as necessary; 172.31.0.0/29 is an example that is likely to work.
 - Check your local network configuration to determine which subnets are already in use
   - Most common networks already in use are 10.0.0.0/8 and 192.168.0.0/16
 - It is *highly* recommended that you use IPv4 ranges IANA has reserved for private use
@@ -80,6 +80,7 @@ docker run -d --network=pcrpto --ip=IPV4ADDR -p EXPORT:INPORT/tcp --env-file ENV
   - INPORT(3306 OR 5000)
     - The internal port the containerized program is listening on
     - The database internal port cannot be changed at this time; it must remain 3306
+    - NOTA BENE: If the database container is running on the same host and subnet as the back end container (which it is in this example) then the -p switch can AND SHOULD be skipped entirely for it. This will prevent PAT from external sources to the database this gives confidence that the only able to access the database is the back end container; moreover, in this case the database eo ipso can be configured to only accept logins from the back end granting additional confidence. In the case that the database and back end are running on separate docker networks, the database container will view all incoming packets as originating from its network's default gateway, and thus access must be controlled via other means (i.e. firewall rules); moreover, the database should then be configured to accept logins from the default gateway.
   - ENVFILE
     - Path/name of the environment variable file you made [here](#environmental-varaibles)
   - CONTAINERNAME(pcrmar OR pcrpro)
