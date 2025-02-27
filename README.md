@@ -32,10 +32,10 @@ NPORT=5000
 ## Employee Mode
 ![Employee Mode](images/employeemode.jpg)
 - Submit Request
- - Put the start time in the left datetime box
- - Put the end time in the right datetime box
- - Press Submit Request
+  - Put the start time in the left datetime box
+  - Put the end time in the right datetime box
+  - Press Submit Request
 - Revoke Request
- - Press View Requests
- - Copy the ID number into the Ausweis box
- - Press Revoke Request
+  - Press View Requests
+  - Copy the ID number into the Ausweis box
+  - Press Revoke Request
