@@ -46,7 +46,7 @@ NOTA BENE: These default values *SHOULD NOT* be used for long term operations.
 
 [top](#top)
 ### Docker Network
-- The bridge network will not allow user specified IP addresses for containers.
+- The default (bridge) network will not allow user specified IP addresses for containers.
 - Create a custom network with the following
 
 `docker network create -d bridge --subnet=172.31.0.0/29 pcrpto`
@@ -109,11 +109,11 @@ This will prevent PAT from external networks to the database container granting 
 - Submit Request
   - Put the start time in the left datetime box
   - Put the end time in the right datetime box
-  - Press Submit Request
+  - Press `Submit Request`
 - Revoke Request
   - Press View Requests
   - Copy the ID number into the Ausweis box
-  - Press Revoke Request
+  - Press `Revoke Request`
 
 [top](#top)
 ### Change Password
@@ -121,7 +121,7 @@ This will prevent PAT from external networks to the database container granting 
 - Enter user name into the top left box
 - Enter current password into the top right box
 - Enter the new password into both bottom boxes
-- Press Confirm
+- Press `Confirm`
 
 [top](#top)
 ### Admin Mode
