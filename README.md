@@ -57,7 +57,7 @@ NPORT=5000
     - The internal port the containerized program is listening on
     - The database internal port cannot be changed at this time; it must remain 3306
   - ENVFILE
-    - Path/name of the environment variable file you made [here](#Environmental Varaibles)
+    - Path/name of the environment variable file you made [here](#environmental-varaibles)
 
 ## Login Page
 ![Login Page](images/loginpage.jpg)
