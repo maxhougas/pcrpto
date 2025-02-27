@@ -39,3 +39,10 @@ NPORT=5000
   - Press View Requests
   - Copy the ID number into the Ausweis box
   - Press Revoke Request
+
+## Change Password
+![Change Password Screen](images/changepassword.jpg)
+- Enter user name into the top left box
+- Enter current password into the top right box
+- Enter the new password into both bottom boxes
+- Press Confirm
