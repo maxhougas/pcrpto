@@ -46,7 +46,9 @@ NPORT=5000
 ### Docker Network
 - The bridge network will not allow user specified IP addresses for containers.
 - Create a custom network with the following
+
 `docker network create -d bridge --subnet=172.31.0.0/28 pcrpto`
+
 - The subnet may be altered as necessary; 172.31.0.0/28 is an example that is likely to work.
 - Check your local network configuration to determine which subnets are already in use
   - Most common networks already in use are 10.0.0.0/8 and 192.168.0.0/16
@@ -59,7 +61,9 @@ NPORT=5000
 [top](#top)
 ### Running Containers
 - Containers can be run with the following
+
 `docker run -d --network=pcrpto --ip=IPV4ADDR -p EXPORT:INPORT/tcp --env-file ENVFILE --name CONTAINERNAME maxhougas/pcrpto:TAG`
+
   - IPV4ADDR(172.31.0.2 OR 172.31.0.3): Some ipv4 address within the range.
     - The first address (.0) refers to the network itself
     - The second address (.1) is usually the default gateway
