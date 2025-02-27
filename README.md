@@ -1,12 +1,18 @@
-<a name="toc" />
+<a name="toc"/>
 
 # PCR Players' Club PTO request
+- [Table of Contents](#toc)
+  - [Set Up](#setup)
+    - [Environmental Variables](#environmental-variables)
+	  - [Docker Network](#docker-network)
 
 <a name='setup'/>
+
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
 
 <a name='environmental-variables'/>
+
 ### Environmental Variables
 - BOSPAS(bospas): PTO admin DB password
 - CLIPATH(/home/user/pcrpto/client/out): Path to the folder containing static resources (index.html)
