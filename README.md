@@ -11,6 +11,9 @@
     - [Employee Mode](#employee-mode)
     - [Change Password](#change-password)
     - [Admin Mode](#admin-mode)
+    - [Manage Employees](#manage-employees)
+    - [Manage Requests](#manage-requests)
+    - [Manage Shifts](#manage-shifts)
 
 [top](#top)
 ## Set up
@@ -156,7 +159,7 @@ This will prevent PAT from external networks to the database container granting 
 
 [top](#top)
 ### Manage Shifts
-![Manage Shifts](images/mnageshifts.jpg)
+![Manage Shifts](images/manageshifts.jpg)
 - `Load Shifts` will display the default shift times for the store in the Store box in the six top-right boxes.
   - From top to bottom the times are Start of Day, Shift Change, and End of Day for weekdays and Sunday as labelled.
 - `Save Shifts` will save any alterations made to default shift times for the store in the Store box to the database.
