@@ -13,7 +13,7 @@
 
 It is recommended to create a environment variables file and pass it to the containers at run time
 
-The following is an example withe default values.
+The following is an example with the default values:
 ```
 BOSPAS=bospas
 CLIPATH=/home/user/pcrpto/client/out
@@ -25,3 +25,5 @@ MPORT=3306
 NIP=172.17.0.1
 NPORT=5000
 ```
+## Login Page
+![Login Page](images/loginpage.jpg)
