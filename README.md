@@ -25,6 +25,11 @@ MPORT=3306
 NIP=172.17.0.1
 NPORT=5000
 ```
+## Docker network
+- The bridge network will not allow user specified IP addresses for containers.
+- Create a custom network with the following
+`docker network create -d bridge pcrpto`
+
 ## Login Page
 ![Login Page](images/loginpage.jpg)
 - Type random things into both boxes until it works
