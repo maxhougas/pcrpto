@@ -11,11 +11,11 @@
     - [Employee Mode](#employee-mode)
     - [Change Password](#change-password)
 
-[top]
-
+[top](#top)
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
 
+[top](#top)
 ### Environmental Variables
 - BOSPAS(bospas): PTO admin DB password
 - CLIPATH(/home/user/pcrpto/client/out): Path to the folder containing static resources (index.html)
@@ -41,6 +41,8 @@ MPORT=3306
 NIP=172.17.0.1
 NPORT=5000
 ```
+
+[top](#top)
 ### Docker Network
 - The bridge network will not allow user specified IP addresses for containers.
 - Create a custom network with the following
@@ -54,6 +56,7 @@ NPORT=5000
   - [RFC6890](https://www.rfc-editor.org/rfc/rfc6890#section-2.2.2) See tables 2, 6, and, 11
   - [RFC1918](https://www.rfc-editor.org/rfc/rfc1918#section-3)
 
+[top](#top)
 ### Running Containers
 - Containers can be run with the following
 `docker run -d --network=pcrpto --ip=IPV4ADDR -p EXPORT:INPORT/tcp --env-file ENVFILE --name CONTAINERNAME maxhougas/pcrpto:TAG
@@ -74,12 +77,14 @@ NPORT=5000
   - ENVFILE
     - Path/name of the environment variable file you made [here](#environmental-varaibles)
 
+[top](#top)
 ## Operation
 
 ### Login Page
 ![Login Page](images/loginpage.jpg)
 - Type random things into both boxes until it works
 
+[top](#top)
 ### Employee Mode
 ![Employee Mode](images/employeemode.jpg)
 - Submit Request
@@ -91,9 +96,12 @@ NPORT=5000
   - Copy the ID number into the Ausweis box
   - Press Revoke Request
 
+[top](#top)
 ### Change Password
 ![Change Password Screen](images/changepassword.jpg)
 - Enter user name into the top left box
 - Enter current password into the top right box
 - Enter the new password into both bottom boxes
 - Press Confirm
+
+[top](#top)
