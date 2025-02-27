@@ -42,6 +42,7 @@ MPORT=3306
 NIP=172.17.0.1
 NPORT=5000
 ```
+NOTA BENE: These default values *SHOULD NOT* be used for long term operations.
 
 [top](#top)
 ### Docker Network
