@@ -14,6 +14,7 @@
     - [Manage Employees](#manage-employees)
     - [Manage Requests](#manage-requests)
     - [Manage Shifts](#manage-shifts)
+- [Deutsch](#deutsch)
 
 [top](#top)
 ## Set up
@@ -169,4 +170,8 @@ This will prevent PAT from external networks to the database container granting 
   - These boxes represent Start of Day, Shift Change, and End of Day similarly to the default shift times.
   - To specify that there is no shift for a certain day simply declare the start and end times to be the same. For example if there is to be no first shift on New Year's Day 1990 the the top-left box and the middle-left box could both be set to 12:00 PM, and the left-third box should be set to whenever the second shift ends.
  
+[top](#top)
+# Deutsch
+- Ich spreche kein Deutsch :(
+
 [top](#top)
