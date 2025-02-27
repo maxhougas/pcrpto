@@ -10,6 +10,7 @@
     - [Login Page](#login-page)
     - [Employee Mode](#employee-mode)
     - [Change Password](#change-password)
+    - [Admin Mode](#admin-mode)
 
 [top](#top)
 ## Set up
@@ -122,3 +123,28 @@ This will prevent PAT from external networks to the database container granting 
 - Press Confirm
 
 [top](#top)
+### Admin Mode
+![Admin Mode](images/adminmode.jpg)
+- [Manage Employees](#manage-employees),[Manage Requests](#manage-requests), and [Manage Shifts](#manage-shifts) are submenus.
+- [Change Password](#change-password) is identical to the employee version.
+- Terminate Connections will instruct the back end to purge all session tokens effectively logging everyone out.
+  - This will confuse and enrage anyone who is still logged in; use with care.
+
+[top](#top)
+### Manage Employees
+![Manage Employees](images/manageemployees.jpg)
+- List Employees will display all registered employees.
+- Create Employee will create an employee with the employee id currently in the left box.
+- Delete Employee will remove an employee record from the database.
+- List Stores will display all registered stores.
+- Create Store will create a store with the store id currently in the right box.
+- Delete store will remove a store record from the database.
+- List Assignments will show which employees are assigned to which stores.
+  - If the left and right box are both empty, all assignments are displayed.
+  - If the left box contains an employee id, assignments matching that employee id are displayed
+  - If the left box is empty and the right box contains a store id, assigments matching that store id are displayed.
+- Assign Store will assign the employee id in the left box to the store id in the right box.
+- `Unassign Store` will remove the assignment record of the employee id in the left box to the store id in the right box.
+
+[top](#top)
+
