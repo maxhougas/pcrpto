@@ -59,7 +59,7 @@ NPORT=5000
 [top](#top)
 ### Running Containers
 - Containers can be run with the following
-`docker run -d --network=pcrpto --ip=IPV4ADDR -p EXPORT:INPORT/tcp --env-file ENVFILE --name CONTAINERNAME maxhougas/pcrpto:TAG
+`docker run -d --network=pcrpto --ip=IPV4ADDR -p EXPORT:INPORT/tcp --env-file ENVFILE --name CONTAINERNAME maxhougas/pcrpto:TAG`
   - IPV4ADDR(172.31.0.2 OR 172.31.0.3): Some ipv4 address within the range.
     - The first address (.0) refers to the network itself
     - The second address (.1) is usually the default gateway
