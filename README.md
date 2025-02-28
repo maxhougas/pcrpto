@@ -15,6 +15,7 @@
     - [Manage Employees](#manage-employees)
     - [Manage Requests](#manage-requests)
     - [Manage Shifts](#manage-shifts)
+  - [Database](#database)
 - [Deutsch](#deutsch)
 
 [top](#top)
@@ -189,6 +190,85 @@ This will prevent PAT from external networks to the database container granting 
   - These boxes represent Start of Day, Shift Change, and End of Day similarly to the default shift times.
   - To specify that there is no shift for a certain day simply declare the start and end times to be the same. For example if there is to be no first shift on New Year's Day 1990 the the top-left box and the middle-left box could both be set to 12:00 PM, and the left-third box should be set to whenever the second shift ends.
  
+[top](#top)
+## Database
+  - The database is a mariadb implementation that is initalized with the following script.
+  - As of time of writing this initialization contains testing data.
+```
+CREATE DATABASE pcr;
+
+CREATE TABLE pcr.employees(
+  id CHAR(64) PRIMARY KEY DEFAULT('testuser'),
+  adm BOOL NOT NULL DEFAULT FALSE,
+  pass CHAR(64) DEFAULT PASSWORD('_DEFPAStestuser')
+);
+CREATE TABLE pcr.stores(
+  id CHAR(64) PRIMARY KEY DEFAULT 'datteln',
+  ustart TIME NOT NULL DEFAULT 070000,
+  usc    TIME NOT NULL DEFAULT 150000,
+  uend   TIME NOT NULL DEFAULT 230000,
+  wstart TIME NOT NULL DEFAULT 070000,
+  wsc    TIME NOT NULL DEFAULT 150000,
+  wend   TIME NOT NULL DEFAULT 230000,
+  sstart TIME NOT NULL DEFAULT 070000,
+  ssc    TIME NOT NULL DEFAULT 150000,
+  send   TIME NOT NULL DEFAULT 230000
+);
+CREATE TABLE pcr.storeemps(
+  store CHAR(64) DEFAULT 'datteln',
+  emp CHAR(64) DEFAULT 'testuser',
+  PRIMARY KEY(store, emp),
+  CONSTRAINT fk_storeemps_store
+    FOREIGN KEY(store) REFERENCES stores(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_storeemps_emp
+    FOREIGN KEY(emp) REFERENCES employees(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE TABLE pcr.pto(
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  emp CHAR(64) NOT NULL DEFAULT 'testuser',
+  startdate DATETIME NOT NULL DEFAULT 19700101000000,
+  enddate   DATETIME NOT NULL DEFAULT 19700101010000,
+  CONSTRAINT fk_pto_emp
+    FOREIGN KEY(emp) REFERENCES employees(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE TABLE pcr.holiday(
+  store CHAR(64) DEFAULT 'datteln',
+  date DATE DEFAULT 19900214,
+  start TIME NOT NULL DEFAULT 120000,
+  sc    TIME NOT NULL DEFAULT 120000,
+  end   TIME NOT NULL DEFAULT 120000,
+  PRIMARY KEY(store,date),
+  CONSTRAINT fk_holiday_date
+    FOREIGN KEY(store) REFERENCES stores(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE ROLE employee;
+GRANT employee TO ptoemployee@'_NIP' IDENTIFIED BY '_EMPPAS';
+SET DEFAULT ROLE employee FOR ptoemployee@'_NIP';
+GRANT SELECT,INSERT,DELETE ON pcr.pto TO employee;
+
+CREATE ROLE ptoadmin;
+GRANT ptoadmin TO ptoboss@'_NIP' IDENTIFIED BY '_BOSPAS' WITH ADMIN OPTION;
+SET DEFAULT ROLE ptoadmin FOR ptoboss@'_NIP';
+GRANT employee TO ptoadmin WITH ADMIN OPTION;
+GRANT ALL ON pcr.* TO ptoadmin;
+
+INSERT INTO pcr.employees(id,pass) VALUES('testuser',PASSWORD('_DEFPAStestuser'));
+INSERT INTO pcr.employees(id,pass) VALUES('mrkitty',PASSWORD('_DEFPASmrkitty'));
+INSERT INTO pcr.employees(id,adm,pass) VALUES ('boss',TRUE,PASSWORD('_DEFPASboss'));
+
+INSERT INTO pcr.stores(id,ustart,usc,uend,wstart,wsc,wend,sstart,ssc,send) VALUES('datteln', 070000,150000,230000,070000,150000,230000,070000,150000,230000);
+INSERT INTO pcr.stores(id,ustart,usc,uend,wstart,wsc,wend,sstart,ssc,send) VALUES('winnapeg',100000,150000,230000,070000,150000,230000,120000,150000,230000);
+INSERT INTO pcr.pto(emp,startdate,enddate) VALUES('testuser',19900202101000,19900203101000);
+INSERT INTO pcr.storeemps(store,emp) VALUES('datteln','testuser');
+INSERT INTO pcr.storeemps(store,emp) VALUES('winnapeg','mrkitty');
+INSERT INTO pcr.holiday(store,date,start,sc,end) VALUES('datteln',19900214,120000,120000,120000);
+```
+
 [top](#top)
 # Deutsch
 - Ich spreche kein Deutsch :(
