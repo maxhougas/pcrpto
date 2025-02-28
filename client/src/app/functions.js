@@ -181,6 +181,10 @@ export function shiftconfs(shifts,ptos){
   return conflicts;
 }
 
+export function invert(m,sub){
+  return m.filter(me => {let match = false; sub.forEach(se => {if(se === me) match = true;});return (!match);});
+}
+
 /***
  E001 END FUNCTIONS
  ***/

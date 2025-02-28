@@ -21,19 +21,11 @@ function Status({grid,status}){
 }
 
 function Outputs({grid,outputs}){
-	function Ulist({children}){
-		let items = Array.isArray(children)?children:[children];
-		return Array.isArray(children)?(
-			<ul style={{margin:0,padding:0,listStyleType:'none'}}>
-				{children.map((e,i)=><li key={i}>{e}</li>)}
-			</ul>
-		):children;
-	}
   let o = Array.isArray(outputs)?outputs:[outputs];
 
   return(
     <div key={1} id='outputs' style={{gridTemplateColumns: gcols(grid)}} className={styles.outputs}>
-      {o.map((e,i) => <div style={{gridColumn: stretch(grid,o.length,i)}} key={i} id={'o'+i}><Ulist>{e}</Ulist></div>)}
+      {o.map((e,i) => <div style={{gridColumn: stretch(grid,o.length,i)}} key={i} id={'o'+i}>{e}</div>)}
     </div>
   );
 }
@@ -58,6 +50,19 @@ function Buttons({grid,handler,btxt,tab})
     <div key={2} id='buttons' style={{gridTemplateColumns: gcols(grid)}} className={styles.buttons}>
       {t.map((e,i) => <button style={{gridColumn: stretch(grid,t.length,i)}} onClick={h[i]} key={e} id={'b'+i} tabIndex={tab+i}>{e}</button>)}
     </div>
+  );
+}
+
+export function Ynemplist({ja,nein}){
+  return(
+    <>
+      <ul style={{margin:0,padding:'0 5px 0 0',listStyleType:'none'}} key={'ja'}>
+        {['*JA*'].concat(ja).map((e,i)=><li key={i}>{e}</li>)}
+      </ul>
+      <ul style={{margin:0,padding:'0 0 0 5px',listStyleType:'none'}} key={'nein'}>
+        {['*NEIN*'].concat(nein).map((e,i)=><li key={i}>{e}</li>)}
+      </ul>
+    </>
   );
 }
 

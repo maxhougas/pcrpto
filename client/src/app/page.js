@@ -327,12 +327,12 @@ export default function Home(){
   }
 
   function shiftmk(){
-    function mklist(cnfs){
+    function mklist(cnfs,storeemps){
       let lst = ['Date (D-M-Y)','Shift 1','Shift 2'];
       cnfs.forEach(e => {
 				lst = lst.concat(e.date);
-				lst = lst.concat([e.shift0]);
-				lst = lst.concat([e.shift1]);
+				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift0)} nein={e.shift0}/>]);
+				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift1)} nein={e.shift1}/>]);
 			});
       return lst;
     }
@@ -341,10 +341,10 @@ export default function Home(){
 		let st = fun.txtbox('i10');
 
     Promise.all([fun.genreq('shiftload',{store:st}),fun.genreq('reqbystore',{store:st}),fun.genreq('dayl',{store:st})]).then(
-      jso => fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),
+      jso => Promise.all([fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),fun.genreq('storelas',{store:st})]),
       err => {throw Error('Get default shifts failed',{cause:err});}
     ).then(
-      cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf)),
+      cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf[0],cnf[1].map(e=>e.emp))),
       err => {throw Error('Data Formatting Failed',{cause:err});}
     ).catch(rfail);
   }
