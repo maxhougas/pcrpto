@@ -23,6 +23,14 @@
 
 [top](#top)
 ## Quick Start
+- Get docker
+  - Alpine: `apk update && apk add docker`
+  - Arch: `pacman -Syy && pacman -S docker`
+  - Debian: `apt update && apt install docker.io`
+  - Windows: `powershell "$ProgressPreference = 'SilentlyContinue'; wget 'https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe?utm_source=docker&utm_medium=webreferral&utm_campaign=docs-driven-download-win-amd64&_gl=1*qd0t7e*_ga*MzI3MDkyMTY0LjE2OTgwODEzMTI.*_ga_XJWPQMJYHQ*MTc0MDc3MTQ0Ny4yMjQuMC4xNzQwNzcxNDUxLjU2LjAuMA..' -outfile dockerinstall.exe; ./dockerinstall.exe"`
+    - Human readable: [docs.docker.com](https://docs.docker.com/desktop/setup/install/windows-install/)
+- Ensure virtualization is enabled in your BIOS (See documentation from your motherboard manufacturer)
+- Run the following commands from the relevant shell (on windows this will be the terminal emulator inside Docker desktop)
 ```
 docker network create -d bridge --subnet=172.31.0.0/29 pcrpto
 docker run -de BOSPAS=pass1 -e DEFPAS=pass2 -e EMPPAS=pass3 -e NIP=172.31.0.3 --network=pcrpto --ip=172.31.0.2 --name pcrmar maxhougas/pcrpto:mar
