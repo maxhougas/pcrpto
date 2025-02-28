@@ -2,7 +2,7 @@
 
 # PCR Players' Club PTO request
 - [Table of Contents](#top)
-  - [Quick Start](#quickstart)
+  - [Quick Start](#quick-start)
   - [Set Up](#set-up)
     - [Environmental Variables](#environmental-variables)
     - [Docker Network](#docker-network)
