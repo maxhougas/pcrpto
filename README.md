@@ -26,13 +26,13 @@
 ```
 docker network create -d bridge --subnet=172.31.0.0/29 pcrpto
 docker run -de BOSPAS=pass1 -e DEFPAS=pass2 -e EMPPAS=pass3 -e NIP=172.31.0.3 --network=pcrpto --ip=172.31.0.2 --name pcrmar maxhougas/pcrpto:mar
-docker run -de BOSPAS=pass1 -e CLIPATH=/home/user/pcrpto/client/out -e CRTPAS=pass4 -e DEFPAS=pass2 -e EMPPAS=pass3 -e MIP=172.31.0.2 -e MPORT=3306 -e NIP=172.31.0.3 -e NPORT=5000 --network=pcrpto --ip=172.31.0.3 --name pcrpro maxhougas/pcrpto:pro
+docker run -de BOSPAS=pass1 -e CRTPAS=pass4 -e DEFPAS=pass2 -e EMPPAS=pass3 -e MIP=172.31.0.2 -e MPORT=3306 -e NIP=172.31.0.3 -e NPORT=5000 --network=pcrpto --ip=172.31.0.3 -p 0.0.0.0:5000:5000/tcp --name pcrpro maxhougas/pcrpto:pro
 ```
 
 [top](#top)
 ### Environmental Variables
 - BOSPAS(bospas): PTO admin DB password
-- CLIPATH(/home/user/pcrpto/client/out): Path to the folder containing static resources (index.html)
+- CLIPATH(/home/user/pcrpto/client/out): Path to the folder containing static resources (index.html); this may be omitted in usual cases.
 - CRTPAS(crtpas): SSL certificate password
 - DEFPAS(defpas): Default password for frontend users
 - EMPPAS(emppas): DB password for regular users
@@ -43,7 +43,7 @@ docker run -de BOSPAS=pass1 -e CLIPATH=/home/user/pcrpto/client/out -e CRTPAS=pa
 
 It is recommended to create a environment variables file and pass it to the containers at run time
 
-The following is an example with the default values:
+The following is an example file with the default values:
 ```
 BOSPAS=bospas
 CLIPATH=/home/user/pcrpto/client/out
