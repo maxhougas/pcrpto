@@ -2,6 +2,7 @@
 
 # PCR Players' Club PTO request
 - [Table of Contents](#top)
+  - [Quick Start](#quickstart)
   - [Set Up](#set-up)
     - [Environmental Variables](#environmental-variables)
     - [Docker Network](#docker-network)
@@ -19,6 +20,14 @@
 [top](#top)
 ## Set up
 - Designed to run on [these containers](https://hub.docker.com/r/maxhougas/pcrpto)
+
+[top](#top)
+## Quick Start
+```
+docker network create -d bridge --subnet=172.31.0.0/29 pcrpto
+docker run -de BOSPAS=pass1 -e DEFPAS=pass2 -e EMPPAS=pass3 -e NIP=172.31.0.3 --network=pcrpto --ip=172.31.0.2 --name pcrmar maxhougas/pcrpto:mar
+docker run -de BOSPAS=pass1 -e CLIPATH=/home/user/pcrpto/client/out -e CRTPAS=pass4 -e DEFPAS=pass2 -e EMPPAS=pass3 -e MIP=172.31.0.2 -e MPORT=3306 -e NIP=172.31.0.3 -e NPORT=5000 --network=pcrpto --ip=172.31.0.3 --name pcrpro maxhougas/pcrpto:pro
+```
 
 [top](#top)
 ### Environmental Variables
