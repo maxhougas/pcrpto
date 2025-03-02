@@ -25,7 +25,7 @@ const DEFPAS = process.env.DEFPAS || 'defpas';
  ***/
 
 app.use((req,res,next) => {
-  if(!PRODUCTION){res.setHeader('Access-Control-Allow-Origin', 'https://10.0.1.49:3000');}
+  if(!PRODUCTION){res.setHeader('Access-Control-Allow-Origin', '*');}//'https://10.0.1.49:3000');}
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
   next();
