@@ -199,9 +199,10 @@ This will prevent PAT from external networks to the database container granting 
 CREATE DATABASE pcr;
 
 CREATE TABLE pcr.employees(
-  id CHAR(64) PRIMARY KEY DEFAULT('testuser'),
+  id CHAR(64) PRIMARY KEY DEFAULT 'testuser',
   adm BOOL NOT NULL DEFAULT FALSE,
-  pass CHAR(64) DEFAULT PASSWORD('_DEFPAStestuser')
+  pass CHAR(64) DEFAULT PASSWORD('_DEFPAStestuser'),
+  mpm INT UNSIGNED NOT NULL DEFAULT 0
 );
 CREATE TABLE pcr.stores(
   id CHAR(64) PRIMARY KEY DEFAULT 'datteln',
@@ -246,6 +247,19 @@ CREATE TABLE pcr.holiday(
     FOREIGN KEY(store) REFERENCES stores(id)
     ON DELETE CASCADE ON UPDATE CASCADE
 );
+CREATE TABLE pcr.shiftasg(
+  emp CHAR(64) NOT NULL DEFAULT 'testuser',
+  store CHAR(64) NOT NULL DEFAULT 'datteln',
+  date DATE NOT NULL DEFAULT 19700101,
+  shift TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  PRIMARY KEY(emp,store,date,shift),
+  CONSTRAINT fk_shiftasg_emp
+    FOREIGN KEY(emp) REFERENCES employees(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_shiftasg_store
+    FOREIGN KEY(store) REFERENCES stores(id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
 
 CREATE ROLE employee;
 GRANT employee TO ptoemployee@'_NIP' IDENTIFIED BY '_EMPPAS';
@@ -258,8 +272,8 @@ SET DEFAULT ROLE ptoadmin FOR ptoboss@'_NIP';
 GRANT employee TO ptoadmin WITH ADMIN OPTION;
 GRANT ALL ON pcr.* TO ptoadmin;
 
-INSERT INTO pcr.employees(id,pass) VALUES('testuser',PASSWORD('_DEFPAStestuser'));
-INSERT INTO pcr.employees(id,pass) VALUES('mrkitty',PASSWORD('_DEFPASmrkitty'));
+INSERT INTO pcr.employees(id,pass,mpm) VALUES('testuser',PASSWORD('_DEFPAStestuser'),12000);
+INSERT INTO pcr.employees(id,pass,mpm) VALUES('mrkitty',PASSWORD('_DEFPASmrkitty'),3000);
 INSERT INTO pcr.employees(id,adm,pass) VALUES ('boss',TRUE,PASSWORD('_DEFPASboss'));
 
 INSERT INTO pcr.stores(id,ustart,usc,uend,wstart,wsc,wend,sstart,ssc,send) VALUES('datteln', 070000,150000,230000,070000,150000,230000,070000,150000,230000);
@@ -268,6 +282,7 @@ INSERT INTO pcr.pto(emp,startdate,enddate) VALUES('testuser',19900202101000,1990
 INSERT INTO pcr.storeemps(store,emp) VALUES('datteln','testuser');
 INSERT INTO pcr.storeemps(store,emp) VALUES('winnapeg','mrkitty');
 INSERT INTO pcr.holiday(store,date,start,sc,end) VALUES('datteln',19900214,120000,120000,120000);
+INSERT INTO pcr.shiftasg(emp,store,date,shift) VALUES('testuser','datteln',19900201,1);
 ```
 
 [top](#top)

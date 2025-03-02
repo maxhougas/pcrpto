@@ -260,6 +260,7 @@ export default function Home(){
   }
 
   function reql(){
+    console.log(fun.txtbox('i0'));
     setsprops(s(1,['Getting Requests...']));
 
     function mklist(jso){
