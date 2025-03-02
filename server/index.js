@@ -145,6 +145,11 @@ function sanitize(q){
   else return '_';
 };
 
+function whereline(w){
+  let out = ' WHERE'; Object.keys(w).forEach((e)=>{if(w[e]) out=out+' '+e+" = '"+sanitize(w[e])+"' AND";});
+  return (out === ' WHERE' ? '' : out.slice(0,-4));
+}
+
 console.log('Helper functions defined');
 
 /***
@@ -355,6 +360,14 @@ app.post("/reset",(req,res)=>{
     rfail(res,Error('Nonadmin user or checkphrase mismatch'));
 });
 
+app.post("/shiftlas",(req,res)=>{
+  console.log(req.body);
+  let w = req.body.emp ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : (req.body.store ? " WHERE store = '"+sanitize(req.body.store)+"'" : '');
+  console.log(w);
+
+  genq(req,res,'SELECT * FROM shiftasg'+w+' ORDER BY date,shift,emp');
+});
+
 app.post("/shiftload",(req,res)=>{
   genq(req,res,"SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'");
 });
@@ -388,7 +401,8 @@ app.post("/storel",(req,res)=>{
 });
 
 app.post("/storelas",(req,res)=>{
-  genq(req,res,'SELECT * FROM storeemps'+((req.body.store) ? " WHERE store = '"+sanitize(req.body.store)+"'" : ((req.body.emp) ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : '')));
+  let w = whereline({store:req.body.store,emp:req.body.emp})  //req.body.store ? " WHERE store = '"+sanitize(req.body.store)+"'" : (req.body.emp ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : '');
+  genq(req,res,'SELECT * FROM storeemps'+w);
 });
 
 app.post("/storeuas",(req,res)=>{

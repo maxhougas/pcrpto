@@ -47,8 +47,8 @@ export default function Home(){
    setoprops(null);
    setiprops(null);
    setbprops({grid:3,
-     handler:[ memp,              mreq,             mshifts,        cpasspage,        termconns,              logout],
-     btxt:   ['Manage Employees','Manage Requests','Manage Shifts','Change Password','Terminate Connections','Log Out']
+     handler:[ memp,              mreq,             mstore,         mshifts,        cpasspage,        termconns,              logout],
+     btxt:   ['Manage Employees','Manage Requests','Manage Stores','Manage Shifts','Change Password','Terminate Connections','Log Out']
    });
   }
 
@@ -75,10 +75,10 @@ export default function Home(){
   function memp(){
     setsprops({grid:1,status:['Manage Employees']});
     setoprops(null);
-    setiprops({grid:2,type:['text','text'],itxt:['Employee','Store']});
+    setiprops({grid:2,type:['text','text','date','number'],itxt:['Employee','Store','Date','Shift']});
     setbprops({grid:3,
-      handler:[ empl,            empc,             empd,             storel,       storec,        stored,        storelas,          storeasg,      storeuas,        bossmode,logout],
-      btxt   :['List Employees','Create Employee','Delete Employee','List Stores','Create Store','Delete Store','List Assignments','Assign Store','Unassign Store','Back',  'Log Out']
+      handler:[ empl,            empc,             empd,             shiftlas,          storel,       storec,        stored,        storeasg,      storeuas,        bossmode,logout],
+      btxt   :['List Employees','Create Employee','Delete Employee','List Assignments','List Stores','Create Store','Delete Store','Assign Store','Unassign Store','Back',  'Log Out']
     });
   }
 
@@ -89,8 +89,18 @@ export default function Home(){
     setbprops({grid:3,handler:[reql,reqr,reqp,bossmode,logout],btxt:['List Requests','Remove Request','Purge Requests','Back','Log Out']});
   }
 
+  function mstore(){
+    setsprops({grid:1,status:['Manage Stores']});
+    setoprops(null);
+    setiprops({grid:2,type:['text','text'],itxt:['Employee','Store']});
+    setbprops({grid:3,
+      handler:[ storel,       storec,        stored,        storelas,            storeasg,         storeuas,           bossmode,logout],
+      btxt   :['List Stores','Create Store','Delete Store','List Employee Assg','Assign Employee','Unassign Employee','Back',  'Log Out']
+    });
+  }
+
   function mshifts(){
-    setsprops({grid:1,status:['Manage Shifts']})
+    setsprops({grid:1,status:['Manage Shifts']});
     setoprops({grid:3,outputs:['Holiday','Weekday','Sunday']});
     setiprops({grid:3,
       type:['time',        'time',         'time',          'time',     'time',       'time',      
@@ -307,6 +317,25 @@ export default function Home(){
     fun.genreq('reqs',{start:fun.txtbox('i0'),end:fun.txtbox('i1')}).then(
       jso => rsuc(['Request Submitted']),
       err => {throw Error('Request Submission Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
+  function shiftasg(){
+//    setsprops(s(1,['Assigning Shift...']));
+  }
+
+  function shiftlas(){
+    function mklist(jso){
+      let out = ['Employee','Store','Date (D-M-Y)','Shift'];
+      jso.forEach(e => out = out.concat([e.emp,e.store,fun.yurptime(e.date).slice(0,10),e.shift]));
+      return out;
+    }
+
+    setsprops(s(1,['Getting Shift Assignments...']));
+
+    fun.genreq('shiftlas',{emp:fun.txtbox('i0'),store:fun.txtbox('i1'),date:fun.txtbox('i2'),shift:fun.txtbox('i3')}).then(
+      jso => rsuc(['Registered Shift Assignments'],4,mklist(jso)),
+      err => {throw Error('Get Shift Assignments Failed',{cause:err});}
     ).catch(rfail);
   }
 
