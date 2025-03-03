@@ -25,6 +25,10 @@ const DEFPAS = process.env.DEFPAS || 'defpas';
  ***/
 
 app.use((req,res,next) => {
+  if(req.secure) return next();
+  else res.redirect('https://'+req.hostname+req.originalUrl);
+});
+app.use((req,res,next) => {
   if(!PRODUCTION){res.setHeader('Access-Control-Allow-Origin', '*');}//'https://10.0.1.49:3000');}
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-type');
@@ -145,8 +149,19 @@ function sanitize(q){
   else return '_';
 };
 
-function whereline(w){
-  let out = ' WHERE'; Object.keys(w).forEach((e)=>{if(w[e]) out=out+' '+e+" = '"+sanitize(w[e])+"' AND";});
+function vals(body){
+  let {tok,uname,...v} = body;
+  let out = "(";
+  Object.keys(v).forEach(e=>{if(v[e]) out = out+e+',';});
+  out = out.slice(0,-1)+") VALUES('";
+  Object.values(v).forEach(e=>{if(e) out = out+sanitize(e)+"','"});
+  return out.slice(0,-2)+")";
+}
+
+function wheres(body){
+  let {tok,uname,...w} = body;
+  let out = ' WHERE';
+  Object.keys(w).forEach(e=>{if(w[e]) out = out+' '+e+" = '"+sanitize(w[e])+"' AND";});
   return (out === ' WHERE' ? '' : out.slice(0,-4));
 }
 
@@ -310,6 +325,22 @@ app.post("/days",(req,res)=>{
   genq(req,res,"REPLACE holiday(date,store,start,sc,end) VALUES ('"+sanitize(req.body.date)+"','"+sanitize(req.body.store)+"','"+sanitize(req.body.start)+"','"+sanitize(req.body.sc)+"','"+sanitize(req.body.end)+"')");
 });
 
+app.post("/defshiftload",(req,res)=>{
+  genq(req,res,"SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'");
+});
+
+app.post("/defshiftsave",(req,res)=>{
+  genq(req,res,"UPDATE stores SET ustart='"+sanitize(req.body.ustart)+
+                               "',wstart='"+sanitize(req.body.wstart)+
+                               "',sstart='"+sanitize(req.body.wstart)+
+                               "',usc   ='"+sanitize(req.body.usc   )+
+                               "',wsc   ='"+sanitize(req.body.wsc   )+
+                               "',ssc   ='"+sanitize(req.body.wsc   )+
+                               "',uend  ='"+sanitize(req.body.uend  )+
+                               "',wend  ='"+sanitize(req.body.wend  )+
+                               "',send  ='"+sanitize(req.body.wend  )+"' WHERE id = '"+sanitize(req.body.store)+"'");
+});
+
 app.post("/empc",(req,res)=>{
   genq(req,res,"INSERT INTO employees(id,pass) VALUES ('"+sanitize(req.body.nuname)+"', PASSWORD('"+DEFPAS+sanitize(req.body.nuname)+"'))");
 });
@@ -345,8 +376,6 @@ app.post("/reql",(req,res)=>{
 });
 
 app.post("/reqbystore",(req,res)=>{
-/*  select pto.emp,pto.startdate,pto.enddate from pto join storeemps on (pto.emp = storeemps.emp) where storeemps.store = sanitize(req.body.store)
-*/
   genq(req,res,"SELECT pto.emp,pto.startdate,pto.enddate FROM pto JOIN storeemps ON (pto.emp = storeemps.emp) WHERE storeemps.store = '"+sanitize(req.body.store)+"'");
 });
 
@@ -360,28 +389,16 @@ app.post("/reset",(req,res)=>{
     rfail(res,Error('Nonadmin user or checkphrase mismatch'));
 });
 
+app.post("/shiftasg",(req,res)=>{
+  genq(req,res,'INSERT INTO shiftasg'+vals(req.body));
+});
+
 app.post("/shiftlas",(req,res)=>{
-  console.log(req.body);
-  let w = req.body.emp ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : (req.body.store ? " WHERE store = '"+sanitize(req.body.store)+"'" : '');
-  console.log(w);
-
-  genq(req,res,'SELECT * FROM shiftasg'+w+' ORDER BY date,shift,emp');
+  genq(req,res,'SELECT * FROM shiftasg'+wheres(req.body)+' ORDER BY date,shift,emp');
 });
 
-app.post("/shiftload",(req,res)=>{
-  genq(req,res,"SELECT ustart,wstart,sstart,usc,wsc,ssc,uend,wend,send FROM stores WHERE id = '"+sanitize(req.body.store)+"'");
-});
-
-app.post("/shiftsave",(req,res)=>{
-  genq(req,res,"UPDATE stores SET ustart='"+sanitize(req.body.ustart)+
-                               "',wstart='"+sanitize(req.body.wstart)+
-                               "',sstart='"+sanitize(req.body.wstart)+
-                               "',usc   ='"+sanitize(req.body.usc   )+
-                               "',wsc   ='"+sanitize(req.body.wsc   )+
-                               "',ssc   ='"+sanitize(req.body.wsc   )+
-                               "',uend  ='"+sanitize(req.body.uend  )+
-                               "',wend  ='"+sanitize(req.body.wend  )+
-                               "',send  ='"+sanitize(req.body.wend  )+"' WHERE id = '"+req.body.store+"'");
+app.post("/shiftuas",(req,res)=>{
+  genq(req,res,'DELETE FROM shiftasg'+wheres(req.body));
 });
 
 app.post("/storeasg",(req,res)=>{
@@ -401,7 +418,7 @@ app.post("/storel",(req,res)=>{
 });
 
 app.post("/storelas",(req,res)=>{
-  let w = whereline({store:req.body.store,emp:req.body.emp})  //req.body.store ? " WHERE store = '"+sanitize(req.body.store)+"'" : (req.body.emp ? " WHERE emp = '"+sanitize(req.body.emp)+"'" : '');
+  let w = wheres(req.body);
   genq(req,res,'SELECT * FROM storeemps'+w);
 });
 

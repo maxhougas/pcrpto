@@ -75,10 +75,10 @@ export default function Home(){
   function memp(){
     setsprops({grid:1,status:['Manage Employees']});
     setoprops(null);
-    setiprops({grid:2,type:['text','text','date','number'],itxt:['Employee','Store','Date','Shift']});
+    setiprops({grid:2,type:['text','text','date','date','number'],itxt:['Employee','Store','Start Date','End Date','Shift']});
     setbprops({grid:3,
-      handler:[ empl,            empc,             empd,             shiftlas,          storel,       storec,        stored,        storeasg,      storeuas,        bossmode,logout],
-      btxt   :['List Employees','Create Employee','Delete Employee','List Assignments','List Stores','Create Store','Delete Store','Assign Store','Unassign Store','Back',  'Log Out']
+      handler:[ empl,            empc,             empd,             shiftlas,          shiftasg,      shiftuas,        bossmode,logout],
+      btxt   :['List Employees','Create Employee','Delete Employee','List Assignments','Assign Shift','Unassign Shift','Back',  'Log Out']
     });
   }
 
@@ -109,7 +109,7 @@ export default function Home(){
             'Holiday Ende','Weekday Ende','Sunday Ende','Start Date','Store']
     });
     setbprops({grid:3,
-      handler:[ shiftload,    shiftsave,    shiftmk,         dayl,           days,          dayd,       mainpage,logout],
+      handler:[ defshiftload, defshiftsave, monthgen,        dayl,           days,          dayd,            mainpage,logout],
       btxt   :['Load Shifts','Save Shifts','Generate Month','List Holidays','Save Holiday','Delete Holiday','Back',  'Log Out']
     });
   }
@@ -238,6 +238,41 @@ export default function Home(){
     ).catch(rfail);
   }
 
+  function defshiftload(){
+		function putvals(jso){
+		  fun.txtbox('i1',jso.wstart);
+			fun.txtbox('i4',jso.wsc);
+			fun.txtbox('i7',jso.wend);
+			fun.txtbox('i2',jso.ustart);
+			fun.txtbox('i5',jso.usc);
+			fun.txtbox('i8',jso.uend);
+		}
+    setsprops(s(1,['Getting Shifts...']));
+
+    fun.genreq('defshiftload',{store:fun.txtbox('i10')}).then(
+      jso => {putvals(jso[0]);rsuc('Shifts Loaded',3,['Holiday','Weekday','Sunday']);},
+      err => {throw Error('Get Shifts Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
+  function defshiftsave(){
+		let dg = {
+		  wstart:fun.txtbox('i1'),
+			wsc   :fun.txtbox('i4'),
+			wend  :fun.txtbox('i7'),
+			ustart:fun.txtbox('i2'),
+			usc   :fun.txtbox('i5'),
+			uend  :fun.txtbox('i8'),
+			store :fun.txtbox('i10')
+	  }
+    setsprops(s(1,'Saving Shifts...'));
+
+    fun.genreq('defshiftsave',dg).then(
+      jso => setsprops(s(1,['Shifts Saved'])),
+      err => {throw Error('Save Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
   function empc(){
     setsprops(s(1,['Creating Employee...']));
 
@@ -269,8 +304,30 @@ export default function Home(){
     ).catch(rfail);
   }
 
+  function monthgen(){
+    function mklist(cnfs,storeemps){
+      let lst = ['Date (D-M-Y)','Shift 1','Shift 2'];
+      cnfs.forEach(e => {
+				lst = lst.concat(e.date);
+				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift0)} nein={e.shift0}/>]);
+				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift1)} nein={e.shift1}/>]);
+			});
+      return lst;
+    }
+
+    setsprops(s(1,['Generating Conflicts...']));
+		let st = fun.txtbox('i10');
+
+    Promise.all([fun.genreq('defshiftload',{store:st}),fun.genreq('reqbystore',{store:st}),fun.genreq('dayl',{store:st})]).then(
+      jso => Promise.all([fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),fun.genreq('storelas',{store:st})]),
+      err => {throw Error('Get default shifts failed',{cause:err});}
+    ).then(
+      cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf[0],cnf[1].map(e=>e.emp))),
+      err => {throw Error('Data Formatting Failed',{cause:err});}
+    ).catch(rfail);
+  }
+
   function reql(){
-    console.log(fun.txtbox('i0'));
     setsprops(s(1,['Getting Requests...']));
 
     function mklist(jso){
@@ -321,79 +378,49 @@ export default function Home(){
   }
 
   function shiftasg(){
-//    setsprops(s(1,['Assigning Shift...']));
+    setsprops(s(1,['Assigning Shift...']));
+
+    fun.genreq('shiftasg',{emp:fun.txtbox('i0'),store:fun.txtbox('i1'),date:fun.txtbox('i2'),shift:fun.txtbox('i4')}).then(
+      jso => rsuc(['Shift Assigned']),
+      err => {throw Error('Assign Shift Failed',{cause:err});}
+    ).catch(rfail);
   }
 
   function shiftlas(){
+    setsprops(s(1,['Getting Shift Assignments...']));
+
     function mklist(jso){
       let out = ['Employee','Store','Date (D-M-Y)','Shift'];
       jso.forEach(e => out = out.concat([e.emp,e.store,fun.yurptime(e.date).slice(0,10),e.shift]));
       return out;
     }
 
-    setsprops(s(1,['Getting Shift Assignments...']));
+    let d = {
+      emp  :fun.txtbox('i1'),
+      store:fun.txtbox('i1'),
+      date :fun.txtbox('i2'),
+      shift:fun.txtbox('i4')
+    };
 
-    fun.genreq('shiftlas',{emp:fun.txtbox('i0'),store:fun.txtbox('i1'),date:fun.txtbox('i2'),shift:fun.txtbox('i3')}).then(
+    fun.genreq('shiftlas',d).then(
       jso => rsuc(['Registered Shift Assignments'],4,mklist(jso)),
       err => {throw Error('Get Shift Assignments Failed',{cause:err});}
     ).catch(rfail);
   }
 
-  function shiftload(){
-		function putvals(jso){
-		  fun.txtbox('i1',jso.wstart);
-			fun.txtbox('i4',jso.wsc);
-			fun.txtbox('i7',jso.wend);
-			fun.txtbox('i2',jso.ustart);
-			fun.txtbox('i5',jso.usc);
-			fun.txtbox('i8',jso.uend);
-		}
-    setsprops(s(1,['Getting Shifts...']));
+  function shiftuas(){
+    setsprops(s(1,['Unassigning...']));
 
-    fun.genreq('shiftload',{store:fun.txtbox('i10')}).then(
-      jso => {putvals(jso[0]);rsuc('Shifts Loaded',3,['Holiday','Weekday','Sunday']);},
-      err => {throw Error('Get Shifts Failed',{cause:err});}
-    ).catch(rfail);
-  }
+    let d = {
+      emp  :fun.txtbox('i0'),
+      store:fun.txtbox('i1'),
+      date :fun.txtbox('i2'),
+      shift:fun.txtbox('i4')
+    };
 
-  function shiftmk(){
-    function mklist(cnfs,storeemps){
-      let lst = ['Date (D-M-Y)','Shift 1','Shift 2'];
-      cnfs.forEach(e => {
-				lst = lst.concat(e.date);
-				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift0)} nein={e.shift0}/>]);
-				lst = lst.concat([<comps.Ynemplist ja={fun.invert(storeemps,e.shift1)} nein={e.shift1}/>]);
-			});
-      return lst;
-    }
-
-    setsprops(s(1,['Generating Conflicts...']));
-		let st = fun.txtbox('i10');
-
-    Promise.all([fun.genreq('shiftload',{store:st}),fun.genreq('reqbystore',{store:st}),fun.genreq('dayl',{store:st})]).then(
-      jso => Promise.all([fun.shiftconfs(fun.genshifts(fun.txtbox('i9'),Object.values(jso[0][0]),jso[2]),jso[1]),fun.genreq('storelas',{store:st})]),
-      err => {throw Error('Get default shifts failed',{cause:err});}
-    ).then(
-      cnf => rsuc(fun.txtbox('i10')+' conflicts',3,mklist(cnf[0],cnf[1].map(e=>e.emp))),
-      err => {throw Error('Data Formatting Failed',{cause:err});}
-    ).catch(rfail);
-  }
-
-  function shiftsave(){
-		let dg = {
-		  wstart:fun.txtbox('i1'),
-			wsc   :fun.txtbox('i4'),
-			wend  :fun.txtbox('i7'),
-			ustart:fun.txtbox('i2'),
-			usc   :fun.txtbox('i5'),
-			uend  :fun.txtbox('i8'),
-			store :fun.txtbox('i10')
-	  }
-    setsprops(s(1,'Saving Shifts...'));
-
-    fun.genreq('shiftsave',dg).then(
-      jso => setsprops(s(1,['Shifts Saved'])),
-      err => {throw Error('Save Failed',{cause:err});}
+    fun.genreq('storeuas',d).then(
+      jso => rsuc(['Shift Unassigned']),
+      err => {throw Error('Unassign Shift Failed',{cause:err});}
     ).catch(rfail);
   }
 
