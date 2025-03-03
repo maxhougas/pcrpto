@@ -394,6 +394,7 @@ app.post("/shiftasg",(req,res)=>{
 });
 
 app.post("/shiftlas",(req,res)=>{
+  console.log(wheres(req.body));
   genq(req,res,'SELECT * FROM shiftasg'+wheres(req.body)+' ORDER BY date,shift,emp');
 });
 

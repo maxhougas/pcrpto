@@ -396,7 +396,7 @@ export default function Home(){
     }
 
     let d = {
-      emp  :fun.txtbox('i1'),
+      emp  :fun.txtbox('i0'),
       store:fun.txtbox('i1'),
       date :fun.txtbox('i2'),
       shift:fun.txtbox('i4')
@@ -418,7 +418,7 @@ export default function Home(){
       shift:fun.txtbox('i4')
     };
 
-    fun.genreq('storeuas',d).then(
+    fun.genreq('shiftuas',d).then(
       jso => rsuc(['Shift Unassigned']),
       err => {throw Error('Unassign Shift Failed',{cause:err});}
     ).catch(rfail);
